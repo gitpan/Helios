@@ -1,0 +1,28 @@
+--- #YAML:1.0
+name:                Helios
+version:             1.19_05
+abstract:            ~
+license:             perl
+generated_by:        ExtUtils::MakeMaker version 6.36
+distribution_type:   module
+requires:     
+    Bundle::LWP:                   
+    Config::IniFiles:              2.38
+    Data::ObjectDriver:            0.04
+    DBD::mysql:                    3
+    DBI:                           1.6
+    Error:                         0.17
+    Pod::Usage:                    
+    Sub::Uplevel:                  0.18
+    Sys::Hostname:                 1
+    Sys::Syslog:                   0.23
+    Test::Exception:               0.25
+    Test::Simple:                  0.72
+    TheSchwartz:                   1.04
+    XML::NamespaceSupport:         1.04
+    XML::Parser:                   
+    XML::SAX:                      
+    XML::Simple:                   2.18
+meta-spec:
+    url:     http://module-build.sourceforge.net/META-spec-v1.2.html
+    version: 1.2
