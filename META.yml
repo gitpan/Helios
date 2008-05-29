@@ -1,7 +1,7 @@
 --- #YAML:1.0
 name:                Helios
-version:             1.19_05
-abstract:            ~
+version:             1.19_06
+abstract:            A framework for developing asynchronous distributed job processing applications.
 license:             perl
 generated_by:        ExtUtils::MakeMaker version 6.36
 distribution_type:   module
@@ -26,3 +26,5 @@ requires:
 meta-spec:
     url:     http://module-build.sourceforge.net/META-spec-v1.2.html
     version: 1.2
+author:
+    - Andrew Johnson <ajohnson at ittoolbox dotcom>

@@ -1,34 +1,32 @@
-package Helios::Stub;
+package Stub::StubWorker;
 
 use 5.008000;
 use base qw( Helios::Worker );
 use strict;
 use warnings;
-use Sys::Hostname;
 use Sys::Syslog qw(:standard :macros);
 use TheSchwartz::Job;
 use Error qw(:try);
 
 use Helios::Error;			# pulls in all Helios::Error::* exception types
 
-our $VERSION = '1.19_05';		# necessary for packaging purposes
+our $VERSION = '0.01';		# for packaging purposes
 
 
 =head1 NAME
 
-Helios::Stub - Helios::Worker subclass to handle [job type here] jobs
+Stub::StubWorker - Helios::Worker subclass to handle [job type here] jobs
 
 =head1 DESCRIPTION
 
 This is a stub class to use as a guide to create new job types for the Helios system (ie new 
 Helios::Worker subclasses).
 
-
 =head1 TheSchwartz METHODS
 
-The following methods are actually class methods that override those defined by the TheSchwartz 
-queuing system.  By overriding them, you define how your jobs will run in the Helios system and 
-what actions will be performed.  
+The following methods are actually class methods that will be called by TheSchwartz job queue.  By 
+overriding them, you define how your jobs will run in the system and what actions will be 
+performed.  
 
 The max_retries() and retry_delay() methods determines how many times a job is to be retried if it 
 fails, and the amount of time to wait before the job is to be retried (in seconds).  If you want 
@@ -44,22 +42,23 @@ out the following sub definitions.
 =cut
 
 sub max_retries { return 2; }
-
 sub retry_delay { return 3600; }
 
 
 =head2 work()
 
 The work() method is called as a class method.  It does the typical prep work for a Helios worker, 
-parses the arguments for the TheSchwartz::Job object it was passed, does the necessary work, and 
+parses the arguments for the job object it was passed, does the necessary work, and 
 then marks the job as succeeded or failed.
+
+Since most of the Helios::Worker methods are actually instance methods, instantiating an object 
+of the class work() was passed will take care of that for you.
 
 =cut
 
 sub work {
 	my $class = shift;
 	my TheSchwartz::Job $job = shift;
-	my $indexerClass = undef;
 
 	# go ahead and instantiate the class we were given
 	my $self = new $class;
@@ -125,23 +124,6 @@ __END__
 
 =head1 SEE ALSO
 
-L<Helios::Worker>
-
-=head1 AUTHOR
-
-Andrew Johnson, E<lt>ajohnson@ittoolbox.comE<gt>
-
-=head1 COPYRIGHT AND LICENSE
-
-Copyright (C) 2007-8 by CEB Toolbox, Inc.
-
-This program is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.0 or,
-at your option, any later version of Perl 5 you may have available.
-
-=head1 WARRANTY
-
-This software comes with no warranty of any kind.
+L<Helios::Worker>, L<helios.pl>, L<TheSchwartz>
 
 =cut
-

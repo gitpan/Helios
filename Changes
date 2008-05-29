@@ -1,4 +1,8 @@
 Revision history for Perl extension Helios.
 
-1.19  Mon Feb 19 12:00:00 2008
+1.19_06 Wed May 28
+	-added LICENSE file that was left out
+	-add helios_log_clean.pl utility to clean log, job history
+	-added eg/Stub/StubWorker.pm as a worker class stub example
+1.19  Mon May 19 12:00:00 2008
 	-First public release

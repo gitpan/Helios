@@ -18,7 +18,7 @@ $XML::Simple::PREFERRED_PARSER = 'XML::Parser';
 
 use Helios::Error;
 
-our $VERSION = '1.19_05';
+our $VERSION = '1.19_06';
 
 
 =head1 NAME
