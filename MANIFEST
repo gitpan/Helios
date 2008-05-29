@@ -5,14 +5,16 @@ helios.ini
 helios.pl
 helios_job_submit.pl
 helios_log_clean.pl
-inc/ExtUtils/AutoInstall.pm
 INSTALL
+lib/Helios.pm
 lib/Helios/Error.pm
 lib/Helios/Error/DatabaseError.pm
 lib/Helios/Error/Fatal.pm
 lib/Helios/Error/FatalNoRetry.pm
 lib/Helios/Error/InvalidArg.pm
 lib/Helios/Error/Warning.pm
+lib/Helios/Job.pm
+lib/Helios/Test.pm
 lib/Helios/Worker.pm
 LICENSE
 Makefile.PL

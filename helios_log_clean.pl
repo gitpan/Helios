@@ -102,11 +102,19 @@ unless ($SILENT_MODE) { print "...done.\n"; }
 
 =head1 AUTHOR
 
-Andrew Johnson, E<lt>ajohnson@ittoolbox.comE<gt>
+Andrew Johnson, E<lt>ajohnson at ittoolbox dotcomE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2008 by CEB Toolbox, Inc.  All Rights Reserved.
+Copyright (C) 2008 by CEB Toolbox, Inc.
 
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.0 or,
+at your option, any later version of Perl 5 you may have available.
+
+=head1 WARRANTY
+
+This software comes with no warranty of any kind.
 
 =cut
+

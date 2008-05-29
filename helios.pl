@@ -493,7 +493,7 @@ MAIN_LOOP:{
 
 				# if we did launch jobs, depending on the type of worker we may not want to re-check the database yet
 				# longer-running jobs (eg Helios::BatchWorker) don't need to have the db checked immediately after launch
-				# shorter-running jobs (eg VD::IndexWorker) have likely already completed in the time it took to launch them
+				# shorter-running jobs (eg IndexWorker) have likely already completed in the time it took to launch them
 				# and we want to launch as many as possible as quickly as possible (esp. if there's a Mass Index operation)
 				if ($MASTER_LAUNCH_INTERVAL) {
 					if ( $DEBUG_MODE ) { $worker->logMsg(LOG_DEBUG, "MASTER LAUNCH INTERVAL $MASTER_LAUNCH_INTERVAL, SLEEPING"); }
@@ -661,9 +661,9 @@ sub daemonize {
 
 Writes a PID file to a location (defaults to /var/run/helios) to track which daemons are 
 running.  The file will be named after the worker class running, all lowercase, with colons 
-replaced by underscores.  For example, the PID file for VD::IndexWorker will be named 
-"vd__indexworker.pid".  To change the location where the PID file is created, set the pid_path 
-option in helios.ini.
+replaced by underscores.  For example, the PID file for a worker class named 
+'SearchIndex::LoadTestWorker' will be named "searchindex__loadtestworker.pid".  To change the 
+location where the PID file is created, set the pid_path option in helios.ini.
 
 =cut
 

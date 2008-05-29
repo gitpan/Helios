@@ -5,10 +5,10 @@ use ExtUtils::MakeMaker;
 # # the contents of the Makefile that is written.
 WriteMakefile(
     NAME              => 'Helios',
-	AUTHOR            => 'Andrew Johnson <ajohnson at ittoolbox dotcom>',
-	ABSTRACT          => 'A framework for developing asynchronous distributed job processing applications.',
-	LICENSE           => 'perl',
-    VERSION_FROM      => 'lib/Helios/Worker.pm', # finds $VERSION
+    AUTHOR            => 'Andrew Johnson <ajohnson at ittoolbox dotcom>',
+    ABSTRACT          => 'A framework for developing asynchronous distributed job processing applications.',
+    LICENSE           => 'perl',
+    VERSION_FROM      => 'lib/Helios.pm', # finds $VERSION
     PREREQ_PM         => {   Test::Simple           => 0.72,
                              Test::Exception        => 0.25,
                              Sub::Uplevel           => 0.18,

@@ -16,9 +16,10 @@ use TheSchwartz::Job;
 require XML::Simple;
 $XML::Simple::PREFERRED_PARSER = 'XML::Parser';
 
+use Helios::Job;
 use Helios::Error;
 
-our $VERSION = '1.19_06';
+our $VERSION = '1.19_07';
 
 
 =head1 NAME
@@ -45,8 +46,8 @@ fails to prevent errors from affecting future jobs.)
 
 =head1 TheSchwartz METHODS
 
-These methods are used by the underlying TheSchwartz job queuing system to determine what work is 
-to be performed and, a job fails, how it should be retried.
+The following 3 methods are used by the underlying TheSchwartz job queuing system to determine what
+work is to be performed and, a job fails, how it should be retried.
 
 =head2 max_retries()
 
@@ -161,37 +162,26 @@ the helios.pl daemons to better control the worker child processes.
 
 sub work {
 	my $class = shift;
-	my TheSchwartz::Job $job = shift;
+	my Helios::Job $job = shift;
 
 	# get the params (db setup) and args (contribID)
 	# get the database (ProfNet)
 	my $self = new $class;
-	$self->setHostname(hostname);
-	$self->getParamsFromIni('helios.ini');
-	$self->getParamsFromDb();
 
-	my $params = $self->getParams();
-	my $args;
-	eval {
-		$args = $self->parseArgXML( $job->arg()->[0] );
-	};
-	if ($@) {
-		$self->logMsg(LOG_ERR, "Class $class FAILED to parse arguments: $@");
-		$self->failedJob($job, $@);
-	}
-	print Dumper($args);
-	
-	# DO WORK HERE
-	eval {
-		print "DO WORK HERE\n";
-	};
-	if ($@) {
-		print "WORK FAILED!\n";
-		$job->failedJob($job, $@);
-	}
+	try {
+		$self->prep();
+		my $params = $self->getParams();
+		my $args = $self->parseArgXML( $job->arg()->[0] );
 
-	# successful
-	$self->completedJob($job);
+		$self->logMsg($job, LOG_WARNING, "This is the work() method from the Helios::Worker base class; did you forget to override work() in your worker class?");
+
+		# successful
+		$self->completedJob($job);
+	} otherwise {
+		my $e = shift;
+		$self->logMsg($job, LOG_ERR, "Class $class FAILED: ".$e->text);
+		$self->failedJobPermanent($job, $e->text."(Class $class)");
+	};
 
 }
 
@@ -591,7 +581,7 @@ Any logging options to specify to syslogd.  Again, see the L<Sys::Syslog> manpag
 =back
 
 For database logging, the host, process id, and worker class are automatically recorded in the 
-database with your log message.  If you supplied either a TheSchwartz::Job object or a priority, 
+database with your log message.  If you supplied either a Job object or a priority, 
 the jobid and/or priority will also be recorded with your message.
 
 =cut
@@ -707,7 +697,9 @@ sub shouldExitOverdrive {
 
 TheSchwartz::Job methods do not provide adequate logging of job completion for our purposes, so 
 these methods encapsulate extra 'Helios' things we want to do in addition to the normal 
-'TheSchwartz' things.  
+'TheSchwartz' things.
+
+The functionality of these methods will be refactored into the new Helios::Job class in the future.
 
 =head2 completedJob($job)
 
