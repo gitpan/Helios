@@ -19,14 +19,17 @@ $XML::Simple::PREFERRED_PARSER = 'XML::Parser';
 use Helios::Job;
 use Helios::Error;
 
-our $VERSION = '1.19_07';
+our $VERSION = '1.20_12';
 
 
 =head1 NAME
 
-Helios::Worker - base class for workers in the Helios job processing system
+Helios::Worker - base class for workers in the Helios job processing system [DEPRECATED]
 
 =head1 DESCRIPTION
+
+Helios::Worker has been DEPRECATED and is included only to support Helios 1.x applications.  
+See L<Helios::Service> for creating new Helios worker classes/services.
 
 Helios::Worker is the base class for all worker classes intended to be run by the Helios
 parallel job processing system.  It encapsulates functions of the underlying TheSchwartz job 
@@ -796,6 +799,19 @@ JOBFPSQL
 	$job->permanent_failure($error, $exitstatus);
 	return 1;
 }
+
+
+=head1 HELIOS 2.0 COMPATIBILITY METHODS
+
+The following methods were changed/introduced in the new 2.0 API and are here to maintain 
+compatibility with the helios.pl daemon for legacy applications.
+
+=cut
+
+sub setConfig { return setParams(@_); }
+sub getConfig { return getParams(@_); }
+sub getConfigFromIni { return getParamsFromIni(@_); }
+sub getConfigFromDb { return getParamsFromDb(@_); }
 
 
 

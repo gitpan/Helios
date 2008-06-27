@@ -87,6 +87,7 @@ CREATE TABLE helios_log_tb (
 
 CREATE TABLE helios_worker_registry_tb (
     register_time    INTEGER UNSIGNED NOT NULL,
+    start_time       INTEGER UNSIGNED,
 	worker_class     VARCHAR(64),
 	worker_version   VARCHAR(10),
 	host             VARCHAR(64),

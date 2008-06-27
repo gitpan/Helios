@@ -1,7 +1,7 @@
-package Helios::Test;
+package Helios::TestService;
 
 use 5.008000;
-use base qw( Helios::Worker );
+use base qw( Helios::Service );
 use strict;
 use warnings;
 
@@ -11,24 +11,23 @@ use Sys::Syslog qw(:standard :macros);
 use Helios::Error;			# pulls in all Helios::Error::* exception types
 use Helios::Job;
 
-our $VERSION = '1.19_07';		# necessary for packaging purposes
-
+our $VERSION = '1.90_25';	# necessary for packaging purposes
 
 =head1 NAME
 
-Helios::Test - Helios::Worker subclass for testing purposes
+Helios::TestService - Helios::Service subclass for testing purposes
 
 =head1 DESCRIPTION
 
-You can use Helios::Test to test the functionality of Helios collective.  
+You can use Helios::TestService to test the functionality of your Helios collective.  
 
 =over 4
 
 =item 1.
 
-Start a helios.pl daemon to service Helios::Test jobs by issuing:
+Start a helios.pl daemon to service Helios::TestService jobs by issuing:
 
- helios.pl Helios::Test
+ helios.pl Helios::TestService
 
 at a command prompt.
 
@@ -55,70 +54,56 @@ These are disabled as we don't normally want to retry test jobs.
 =cut
 
 #sub max_retries { return 2; }
+#sub retry_delay { return 60; }
 
-#sub retry_delay { return 3600; }
+=head2 run()
 
-
-=head2 work()
-
-Helios::Test only sets up job processing (via prep() and getJobArgs()) and logs the params passed
-to it.
+The run() method just logs the arguments passed to the job.
 
 =cut
 
-sub work {
-	my $class = shift;
-	my Helios::Job $job = shift;
-	my $indexerClass = undef;
-
-	# go ahead and instantiate the class we were given
-	my $self = new $class;
+sub run {
+	my $self = shift;
+	my $job = shift;
+	my $config = $self->getConfig();
+	my $args = $job->getArgs();
 
 	try {
-		# get the configuration params and job arguments
-		$self->prep();
-		my $params = $self->getParams();
-		my $args = $self->getJobArgs($job);
+		if ($self->debug) {
+			print "--CONFIG PARAMS--\n";
+			foreach (keys %$config) {
+				print $_,'=',$config->{$_},"\n";
+			}
+		}
 
 		if ($self->debug) { print "--JOB ARGUMENTS--\n"; }
 		foreach my $arg (sort keys %$args) {
 			if ($self->debug) { print uc($arg),'=',$args->{$arg},"|\n"; }
 			$self->logMsg($job, LOG_DEBUG, "PARAM: $arg VALUE: ".$args->{$arg});
 		}
-
+		if ( defined($args->{failure}) ) {
+			throw Helios::Error::Fatal("Artificially throwing error here");
+		}
 		# if your job completes successfully, you need to mark it was completed
 		$self->completedJob($job);
 
-	} catch Helios::Error::InvalidArg with {
-		# InvalidArgs are thrown if the job's arguments are somehow wrong
-		# it's normal to fail these jobs permanently since if its arguments are wrong it 
-		# probably won't ever succeed
-		my $e = shift;
-		$self->logMsg($job, LOG_ERR, "Class $class FAILED to parse arguments: ".$e->text());
-		$self->failedJobPermanent($job,"Class $class FAILED to parse arguments: ".$e->text());
-	} catch Helios::Error::DatabaseError with {
-		# DatabaseError is thrown if something happens to the connection to the Helios database
-		# (or at your option, some other database error)
-		my $e = shift;
-		$self->logMsg($job, LOG_ERR, "Class $class database error".$e->text.")");
-		$self->failedJob($job, $e->text."(Class $class)");
 	} catch Helios::Error::Warning with {
 		# you can throw this in your "WORK" section to denote your job completed, but had warnings
 		my $e = shift;
-		$self->logMsg($job, LOG_WARNING, "Class $class WARNING: ".$e->text);
+		$self->logMsg($job, LOG_WARNING, "Class $self WARNING: ".$e->text);
 		$self->completedJob($job);
 	} catch Helios::Error::Fatal with {
 		# you can throw this in your "WORK" section to denote a job that failed
 		# (it will be retried if you have defined max_retries() and this job hasn't been retried that many times)
 		my $e = shift;
-		$self->logMsg($job, LOG_ERR, "Class $class FAILED: ".$e->text);
-		$self->failedJob($job, $e->text."(Class $class)");
+		$self->logMsg($job, LOG_ERR, "Class $self FAILED: ".$e->text);
+		$self->failedJob($job, $e->text."(Class $self)",835);
 	} otherwise {
 		# "otherwise" catches unexpected errors that you perhaps didn't throw
 		# usually you can mark the jobs as failed and have them retried
 		my $e = shift;
-		$self->logMsg($job, LOG_ERR, "Class $class FAILED with unknown error: ".$e->text);
-		$self->failedJob($job, $e->text."(Class $class)");
+		$self->logMsg($job, LOG_ERR, "Class $self FAILED with unexpected error: ".$e->text);
+		$self->failedJob($job, $e->text."(Class $self)");
 	};
 
 }
@@ -132,7 +117,7 @@ __END__
 
 =head1 SEE ALSO
 
-L<Helios::Worker>
+L<Helios::Service>
 
 =head1 AUTHOR
 

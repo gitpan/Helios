@@ -2,15 +2,15 @@
 
 use strict;
 use warnings;
-use TheSchwartz;
-use TheSchwartz::Job;
+
 use Error qw(:try);
 
 #use Data::Dumper;	#[]t
 
-use Helios::Worker;
+use Helios::Job;
+use Helios::Service;
 
-our $VERSION = '1.19_05';
+our $VERSION = '1.90_21';
 
 =head1 NAME
 
@@ -57,59 +57,34 @@ if ( !defined($JOB_CLASS) || ($JOB_CLASS eq '--help') || ($JOB_CLASS eq '-h') ) 
 
 # instantiate the base worker class just to get the [global] INI params
 # (we need to know where the Helios db is)
-my $WORKER = new Helios::Worker;
-$WORKER->getParamsFromIni();
-my $params = $WORKER->getParams();
+my $WORKER = new Helios::Service;
+$WORKER->getConfigFromIni();
+my $config = $WORKER->getConfig();
 
 # if we were passed a <params> wodge of XML on the command line, 
-# try to validate it, then add it to the $args array to be passed to TheSchwartz
+# try to validate it
 # if we DIDN'T get a <params> wodge, 
 # then we have to assume it's coming from STDIN.  
-# We'll assume that each line coming in from STDIN is a separate <params> wodge, which will 
-# ultimately mean there will be a job created for each line of input.
-
-my $args;	# arrayref to feed to TheSchwartz
-my $job;
-my @jobs;
-if ( defined($PARAMS) ) {
-#[]old 	$args = [ $PARAMS ];
-	# test the args before we submit
-	if ($VALIDATE) { validateParamsXML($PARAMS) or exit(1); }
-	$job = TheSchwartz::Job->new(
-		funcname => $JOB_CLASS,
-		arg      => [ $PARAMS ]
-	);
-	push(@jobs, $job);
-
-} else {
+# which probably means it's a metajob
+if ( !defined($PARAMS) ) {
+	# read them in from STDIN
 	while (<>) {
 		chomp;
-		if ($VALIDATE) { validateParamsXML($_); }
-		$job = TheSchwartz::Job->new(
-			funcname => $JOB_CLASS,
-			arg      => [ $_ ]
-		);
-		push(@jobs, $job);	}
+		$PARAMS .= $_;
+	}
 }
+# test the args before we submit
+if ($VALIDATE) { validateParamsXML($PARAMS) or exit(1); }
 
-$DATABASES_INFO = [
-	{
-		dsn => $params->{dsn},
-		user => $params->{user},
-		pass => $params->{password}
-	}
-];
-												
-my $client = TheSchwartz->new( databases => $DATABASES_INFO, verbose => 1 );
-#[]? $client->set_verbose(1);
+# create a Helios::Job object and submit it
+my $hjob = Helios::Job->new();
+$hjob->setConfig($config);
+$hjob->setFuncname($JOB_CLASS);
+$hjob->setArgXML($PARAMS);
+my $jobid = $hjob->submit();
 
-#[]old $client->insert($JOB_CLASS, $args);
-my @handles = $client->insert_jobs(@jobs);
 if ($DEBUG_MODE) {
-	print scalar(@handles)," jobs submitted.  Job ids:\n";
-	foreach (@handles) {
-		print $_->jobid,"\n";
-	}
+	print "Job submit successful.  JOBID: ",$jobid,"\n";
 }
 
 
@@ -125,7 +100,7 @@ a true value if the XML is valid, and a false value if it isn't.
 sub validateParamsXML {
 	my $arg = shift;
 	try {
-		my $arg = $WORKER->parseArgXML($arg);
+		my $arg = Helios::Job->parseArgXML($arg);
 		return 1;
 	} catch Helios::Error::InvalidArg with {
 		my $e = shift;
@@ -137,7 +112,7 @@ sub validateParamsXML {
 
 =head1 SEE ALSO
 
-L<TheSchwartz>
+L<Helios>, L<helios.pl>, L<Helios::Service>, L<Helios::Job>
 
 =head1 AUTHOR
 

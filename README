@@ -1,5 +1,10 @@
-Helios version 1.19_05
+Helios version 1.90_26
 ======================
+
+This package contains Helios 1.90_26, the first Helios 2.0 release 
+candidate.  Helios is still lacking in the documentation department, 
+but everything should work.  The documentation situation will improve 
+soon, hopefully.
 
 INSTALLATION
 
@@ -20,16 +25,11 @@ DEPENDENCIES
 This module requires these other modules and libraries:
 
 Config::IniFiles
-DBD::ODBC
-DBD::SQLite
 DBD::mysql
 DBI
 Data::ObjectDriver
 Error
-Sub::Uplevel
 Sys::Syslog
-Test::Exception
-Test::Simple
 TheSchwartz
 XML::Simple
 

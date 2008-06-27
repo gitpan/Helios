@@ -2,18 +2,17 @@
 
 use strict;
 use warnings;
-use CGI ();
+use CGI qw(:cgi);
 use CGI::Carp qw(fatalsToBrowser);
 
 use Error qw(:try);
-use Sys::Hostname;
 use Sys::Syslog qw(:standard :macros);
-use TheSchwartz;
 
-use Helios::Worker;
+use Helios::Job;
+use Helios::Service;
 use Helios::Error;
 
-our $VERSION = '1.19_05';
+our $VERSION = '1.20_25';
 
 my $cgi = new CGI;
 #print $cgi->header('text/html');
@@ -22,14 +21,13 @@ my $type = $cgi->param('type');
 my $params = $cgi->param('params');
 my $validate = $cgi->param('validate');
 
-our $WORKER = new Helios::Worker;
-$WORKER->setHostname(hostname);
-$WORKER->getParamsFromIni() or die($WORKER->errstr);	
-$WORKER->getParamsFromDb() or die($WORKER->errstr);
-my $conf = $WORKER->getParams();
+our $WORKER = new Helios::Service;
+$WORKER->prep() or die($WORKER->errstr);
+my $conf = $WORKER->getConfig();
 
 my $job_class;
 my @job_handles;
+my $jobid;
 
 # try to find the job class that will process this type of job
 try {
@@ -45,7 +43,7 @@ try {
 # (due to performance reasons, this check is turned off unless specifically requested)
 if ( defined($validate) && $validate == 1) {
 	try {
-		my $arg = $WORKER->parseArgXML($params);
+		my $arg = Helios::Job->parseArgXML($params);
 	} otherwise {
 		my $e = shift;
 		$WORKER->logMsg(LOG_ERR, "Invalid job arguments: $params (".$e.')');
@@ -53,34 +51,27 @@ if ( defined($validate) && $validate == 1) {
 	};
 }
 
-# let's attempt to insert the job into the TheSchwartz job queue
-my $databases = [
-			{       dsn => $conf->{dsn},
-					user => $conf->{user},
-					pass => $conf->{password}
-			}
-		];
-
-my $args = [ $params ];
-
+# let's create the Helios::Job object and submit it to the queue
+my $hjob = Helios::Job->new();
 try {
-	my $client = TheSchwartz->new( databases => $databases, verbose => 1 );
-	@job_handles = $client->insert($job_class, $args);
-#[]? 	$client->set_verbose(1);
+	$hjob->setConfig($conf);
+	$hjob->setFuncname($job_class);
+	$hjob->setArgXML($params);
+	$jobid = $hjob->submit();
 } otherwise {
 	my $e = shift;
-	$WORKER->logMsg(LOG_ERR, "TheSchwartz generated an error?:".$e->text );
+	$WORKER->logMsg(LOG_ERR,"Job submission error: ".$e->text());
 	throw $e;
 };
 
 print $cgi->header('text/xml');
 print <<RESPONSE;
 <?xml version="1.0" encoding="UTF-8"?>
-<response><status>0</status>
+<response>
+<status>0</status>
 RESPONSE
-foreach (@job_handles) {
-	print '<jobid>',$_->jobid,"</jobid>";
-}
+print '<jobid>',$jobid,"</jobid>";
+
 print "</response>";
 
 exit(0);
@@ -97,7 +88,7 @@ helios_class_map table.
 
 sub getJobClass {
 	my $type = shift;
-	my $params = $WORKER->getParams();
+	my $params = $WORKER->getConfig();
 	my $dsn = $params->{dsn};
 	my $user = $params->{user};
 	my $password = $params->{password};
@@ -120,7 +111,7 @@ sub getJobClass {
 
 =head1 SEE ALSO
 
-L<helios_job_submit.pl>, L<helios.pl>, L<TheSchwartz>
+L<helios_job_submit.pl>, L<helios.pl>, L<Helios::Service>, L<Helios::Job>
 
 =head1 AUTHOR
 

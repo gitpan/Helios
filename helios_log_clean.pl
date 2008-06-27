@@ -5,10 +5,10 @@ use warnings;
 use Error qw(:try);
 use Getopt::Long;
 
-use Helios::Worker;
+use Helios::Service;
 use Helios::Error;
 
-our $VERSION = '1.19_06';
+our $VERSION = '1.90_10';
 
 =head1 NAME
 
@@ -71,9 +71,9 @@ unless ($DAYS) { $DAYS = 7; }
 
 # instantiate the base worker class just to get the [global] INI params
 # (we need to know where the Helios db is)
-our $WORKER = new Helios::Worker;
-$WORKER->getParamsFromIni();
-my $params = $WORKER->getParams();
+our $WORKER = new Helios::Service;
+$WORKER->getConfigFromIni();
+my $params = $WORKER->getConfig();
 my $sql;
 my $epoch_horizon = time() - ($DAYS * $SECONDS_IN_DAY);
 
