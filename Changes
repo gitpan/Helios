@@ -1,5 +1,7 @@
 Revision history for Perl extension Helios.
 
+2.00  Fri Aug 01 02:00:00 2008
+	-First public production release (same as 1.90_26 w/more documentation)
 1.90_26 Thu Jun 26 11:30:00 2008
 	-Helios 2.0 RC1
 	-NEW Helios 2.0 API

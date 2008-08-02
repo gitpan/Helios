@@ -10,7 +10,7 @@ use Error qw(:try);
 use Helios::Job;
 use Helios::Service;
 
-our $VERSION = '1.90_21';
+our $VERSION = '2.00';
 
 =head1 NAME
 

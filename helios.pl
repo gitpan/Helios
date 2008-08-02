@@ -13,7 +13,7 @@ use TheSchwartz;
 use Helios;
 use Helios::Error;
 
-our $VERSION = '1.90_26';
+our $VERSION = '2.00';
 
 =head1 NAME
 

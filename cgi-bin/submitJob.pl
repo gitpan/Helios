@@ -12,7 +12,7 @@ use Helios::Job;
 use Helios::Service;
 use Helios::Error;
 
-our $VERSION = '1.20_25';
+our $VERSION = '2.00';
 
 my $cgi = new CGI;
 #print $cgi->header('text/html');

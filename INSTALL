@@ -1,0 +1,184 @@
+INSTALLING HELIOS
+
+Installing Helios isn't terribly hard itself, but it does require 
+several prerequisites.  This file details the necessary steps for several 
+operating systems, and the generic steps necessary for other platforms.
+
+The general steps involve:
+* Install MySQL
+* Install Apache or other web server (to support the job submission CGI)
+* Install required Perl modules
+* Install Helios
+* Configure Helios database and .ini file
+
+In general, you should probably install your MySQL database and Apache 
+server(s), then install Helios and its prerequisites on one server.  Once you 
+have a one-node collective running, installing and running Helios on other 
+hosts will be easier.
+
+GENERIC INSTRUCTIONS
+
+The following instructions should work to install Helios on most Unix-style 
+platforms.  If your platform has some of these things prepackaged (MySQL and
+Apache, hopefully), you can save yourself some time by using the prepackaged 
+versions.
+
+1) Install MySQL
+
+You'll need to install MySQL and create a database and a user that all the 
+Helios hosts can log into.  The sql/helios.sql file contains the schema for 
+the Helios database; you can go ahead and create it now or wait until you're 
+ready to install Helios.
+
+2) Install Apache
+
+Install Apache on the host(s) you want to send HTTP to submit jobs.  This 
+server(s) will need to have the same database access as the other Helios 
+hosts, regardless of whether it will be running jobs.  It's probably best to 
+simply use your first host for this, at least until your get the rest of your
+Helios collective up and running.  Make sure Apache is configured to run CGI 
+programs.
+
+You could also use another HTTP server with CGI capabilities.  There's no 
+reason it shouldn't work, but Helios hasn't been tested with other web servers, 
+so YMMV.
+
+If you don't want to submit jobs via HTTP, you don't have to install Apache, 
+though the Helios::Panoptes admin interface (packaged separately) will still 
+need it.
+
+3) Install Perl CPAN dependencies
+
+Helios requires the following modules to be installed:
+
+    DBI
+    DBD::mysql
+    XML::Simple
+    Sys::Syslog
+    Config::IniFiles
+    Error
+    Data::ObjectDriver
+    TheSchwartz
+    Bundle::LWP
+    
+Some of these modules have dependencies of their own.  Your best bet in most 
+cases is to try to use the CPAN shell (perl -MCPAN -eshell) to install these 
+libraries.  In most cases the CPAN shell will be able to install the proper 
+dependencies.  One exception is XML::Simple, which requires an underlying XML 
+parser, either XML::Parser or XML::LibXML; these always seem to cause 
+installation problems for the author in one way or another.  Using a .deb or 
+.rpm to install the XML parser will probably save you a lot of time and 
+headache.
+
+4) Install Helios
+
+You can install Helios in the typical CPAN manner:
+
+    perl Makefile.PL
+    make
+    make test
+    make install
+
+If the HELIOS_INI environment variable is set (see below), make test will 
+attempt to use the information in the .ini file to connect to the specified 
+Helios database and read configuration parameters from it.  If HELIOS_INI isn't 
+set, that test will be skipped.
+ 
+Once the Helios base libraries are installed, you can optionally install the 
+job submission CGI in your host's cgi-bin directory to support job submission 
+via HTTP.  If your cgi-bin directory is, say, /usr/local/apache/cgi-bin:
+
+    cp cgi-bin/submitJob.pl /usr/local/apache/cgi-bin/
+    
+should put submitJob.pl in the right place.  Remember to make the file 
+executable by your web server's user. 
+    
+5) Initial Helios configuration - helios.ini
+
+Just about everything in Helios depends on a helios.ini file to specify 
+initial settings and connection information for the Helios database.  The 
+helios.pl daemon service loader/daemon program will look for its .ini file in 
+the location specified by the HELIOS_INI environment variable, so adding 
+
+    export HELIOS_INI=/path/to/helios.ini
+
+to either your global user profile or the profile of the user you intend to run     
+Helios under is probably a good idea.  
+
+There is a sample helios.ini file included in the Helios distribution to help 
+guide your initial install.  To specify the Helios database connection, specify 
+the correct dsn, user, and password values in the [global] section.  Helios by 
+default will place PID files for the daemons it launches in /var/run/helios; 
+you may want to change this location by specifying the pid_path parameter.  
+There are other parameters you can specify; check the helios.pl man page for 
+more information. 
+
+6) Initial Helios configuration - Helios database
+
+The sql/helios.sql file contains the schema for the Helios database.  You can 
+set up the Helios schema in your database by feeding the SQL commands to your 
+mysql command line client:
+
+mysql -D database -u user -p < sql/helios.sql
+
+7) Final checks 
+
+At this point, your Helios host should be ready to service jobs.  If you want 
+to do further tests, you can use Helios::TestService.  Helios::TestService 
+runs in your Helios collective like any other service, but it only records the 
+job arguments passed to it in the Helios log.  Once you're satisfied your 
+Helios host is configured properly, you can move on to installing Helios on the 
+next host in your collective.
+
+
+UBUNTU / DEBIAN INSTALL
+
+Most of the Helios requirements can be installed on an Ubuntu system using 
+apt-get.  These steps were used on Ubuntu 8.04 Hardy Heron; older Ubuntu 
+versions may not have the correct libraries.  Debian should have these 
+libraries and more, so some of the CPAN modules you'll need to install directly 
+from CPAN with Ubuntu have already been packaged and are ready to go with 
+Debian.
+
+1) Install MySQL
+
+    apt-get install mysql-server
+
+The mysql-server package will also install the Perl DBI and DBD::mysql modules, 
+if they aren't already installed.
+
+2) Install Apache
+
+    apt-get install apache2
+
+3) Install XML::Simple
+
+apt-get install libxml-simple-perl
+
+The libxml-simple-perl package will also install its necessary prerequisites, 
+including XML::LibXML, XML::SAX, XML::NamespaceSupport.
+
+4) Install miscellaneous modules - Sys::Syslog, Config::IniFiles, Error
+
+    apt-get install libsys-syslog-perl
+    apt-get install libconfig-inifiles-perl
+    apt-get install liberror-perl
+
+5) Ubuntu's repositories unfortunately don't have debs past this point.  Use 
+the CPAN shell (perl -MCPAN -eshell) to install the following modules or 
+download and install them manually.  (NOTE: Debian does have some or all of 
+these available, so if you're running Debian you may try running apt-get to 
+install the following modules.
+  
+    Data::ObjectDriver
+    TheSchwartz
+
+Data::ObjectDriver in particular has several dependencies that are not part of 
+the Perl core.  The CPAN shell should be able to install most or all of these 
+for you.
+
+At this point, all of Helios's dependencies should be installed.  You can 
+refer to the GENERIC INSTRUCTIONS to finish installing Helios.
+
+
+

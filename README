@@ -1,10 +1,5 @@
-Helios version 1.90_26
-======================
-
-This package contains Helios 1.90_26, the first Helios 2.0 release 
-candidate.  Helios is still lacking in the documentation department, 
-but everything should work.  The documentation situation will improve 
-soon, hopefully.
+Helios version 2.00
+===================
 
 INSTALLATION
 
@@ -18,6 +13,9 @@ To install this module type the following:
 
 If you don't set the $HELIOS_INI env var, 'make test' will skip its 
 configuration testing step.
+
+See the INSTALL file in this distribution for more detailed installation 
+instructions.
 
 
 DEPENDENCIES
@@ -43,3 +41,4 @@ it under the same terms as Perl itself, either Perl version 5.8.0 or,
 at your option, any later version of Perl 5 you may have available.
 
 See the LICENSE file included in this distribution for more details.
+

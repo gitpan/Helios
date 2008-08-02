@@ -2,7 +2,7 @@ package Helios;
 
 use 5.008000;
 
-our $VERSION = '1.90_26';
+our $VERSION = '2.00';
 
 
 =head1 NAME
@@ -24,17 +24,13 @@ still retaining centralized management.
 The Helios module itself is merely a placeholder for versioning and documentation purposes.  If 
 you want to require Helios (or a certain version of it) in your package, adding 
 
- Helios => 1.20
+ Helios => 2.00
 
 to the PREREQ_PM hashref in Makefile.PL should do the trick.
 
-There will be more documentation here soon, about Helios system concepts, worker class creation, 
-etc.
-
-
 =head1 SEE ALSO
 
-L<helios.pl>, L<Helios::Worker>, L<Helios::Error>
+L<helios.pl>, L<Helios::Service>, L<Helios::Error>
 
 =head1 AUTHOR
 

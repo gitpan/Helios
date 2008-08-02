@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use base qw( Data::ObjectDriver::BaseObject );
 
-our $VERSION = '1.90_15';
+our $VERSION = '2.00';
 
 __PACKAGE__->install_properties({
                columns     => [qw(log_time host process_id jobid funcid job_class priority message)],

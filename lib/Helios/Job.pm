@@ -14,7 +14,7 @@ $XML::Simple::PREFERRED_PARSER = 'XML::Parser';
 use Helios::Error;
 use Helios::JobHistory;
 
-our $VERSION = '1.90_25';
+our $VERSION = '2.00';
 
 
 =head1 NAME

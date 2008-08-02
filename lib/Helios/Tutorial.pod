@@ -1,0 +1,109 @@
+=pod
+
+=head1 NAME
+
+Helios::Tutorial - a tutorial for getting started with Helios
+
+=head1 DESCRIPTION
+
+This is a short tutorial to introduce the Helios system's basic concepts and to show some quick 
+examples of how to write services for Helios.
+
+=head1 HELIOS CONCEPTS
+
+=head2 Jobs
+
+B<Jobs> are simply a set of parameters that represent a discrete unit of work.  Jobs are 
+represented by XML-style markup and can be submitted via the command line helios_job_submit.pl 
+program or via HTTP request to the submitJob.pl CGI program.
+
+=head2 Metajobs
+
+B<Metajobs> are groups of jobs submitted together to Helios.  Bound by XML, a metajob will 
+be burst apart into its constituent jobs when first serviced by Helios.  Metajobs can greatly decrease 
+the time it takes to submit large batches of jobs into the Helios job queue.  
+
+=head2 Services
+
+B<Services> are Perl classes that define how jobs of a certain type should be processed.  Service 
+classes are subclasses of Helios::Service, and implement a run() method to perform a job's 
+operations.  The run() method marks the job as successful or failed just before it ends.  Services 
+can be configured across the collective (see below) using Helios's built-in configuration 
+mechanism, which can be accessed via the Helios::Panoptes web interface or directly by connecting 
+to the Helios MySQL database.
+
+=head2 Workers
+
+B<Workers> are processes launched by Helios daemons to actually perform jobs.  A worker will 
+instantiate its associated service class, do some preparation, and call the service object's 
+run() method.  In normal operation, a worker process performs one job and then exits, but in 
+"OVERDRIVE" mode a worker process will stay in memory and perform as many jobs as possible, until 
+1) there are no more jobs in the queue, 2) told to HOLD or HALT job processing, or 3) encounters 
+an error processing a job that causes it to exit.
+
+=head2 Collective
+
+A B<collective> is a group of servers running Helios daemons connected to the same Helios 
+database.  Services in a collective can be centrally administered using the Helios::Panoptes 
+web interface.  A Helios collective is fundamentally different from a "grid" or "cloud" model of 
+distributed computing.
+
+=head1 WRITING HELIOS SERVICES
+
+Writing a Helios service involves writing a B<service class>, a Perl class that inherits from 
+Helios::Service.  Your service class will need to implement the service's run() method.  The run() 
+method will be passed a Helios::Job object representing the job to be performed.
+
+A sample class is included with Helios, Helios::TestService:
+
+    package Helios::TestService;
+    use strict;
+    use warnings;
+    use base qw(Helios::Service);
+    
+    sub run {
+        my $self = shift;
+        my $job = shift;
+        my $config = $self->getConfig();
+        my $args = $self->getJobArgs($job);
+    
+        foreach my $arg (keys %$args) {
+            $self->logMsg($job, "param:".$arg." value:".$args->{$arg});
+        }
+
+        $self->completedJob($job);
+    }
+    
+    1;
+    
+This service is extremely simple; all it does is pick up the service's configuration and the given 
+job's arguments, and logs the job's arguments in the Helios log.  Then it calls the completedJob() 
+method to mark the job as finished successfully.  Despite its simplicity, all Helios services 
+follow this same basic pattern.
+
+In addition to Helios::TestService, there is a stubbed out example service in the Helios 
+distribution's eg/ directory.  This example is a little more complex, as it implements exception 
+handling with the Error module and Helios::Error exception classes, and performs different levels 
+of logging.  
+
+=head1 SEE ALSO
+
+L<helios.pl>, L<Helios::Service>, L<Helios::Job>, L<Helios::Error>
+
+=head1 AUTHOR
+
+Andrew Johnson, E<lt>ajohnson at ittoolbox dotcomE<gt>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2008 by CEB Toolbox, Inc.
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.0 or,
+at your option, any later version of Perl 5 you may have available.
+
+=head1 WARRANTY
+
+This software comes with no warranty of any kind.
+
+=cut

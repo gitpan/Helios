@@ -11,7 +11,7 @@ use Sys::Syslog qw(:standard :macros);
 use Helios::Error;			# pulls in all Helios::Error::* exception types
 use Helios::Job;
 
-our $VERSION = '1.90_25';	# necessary for packaging purposes
+our $VERSION = '2.00';	# necessary for packaging purposes
 
 =head1 NAME
 

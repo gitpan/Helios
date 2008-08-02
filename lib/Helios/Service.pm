@@ -20,7 +20,7 @@ use Helios::Job;
 use Helios::ConfigParam;
 use Helios::LogEntry;
 
-our $VERSION = '1.90_25';
+our $VERSION = '2.00';
 our $MAX_RETRIES = 0;
 our $RETRY_INTERVAL = 0;
 

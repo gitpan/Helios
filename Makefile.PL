@@ -10,8 +10,6 @@ WriteMakefile(
     LICENSE           => 'perl',
     VERSION_FROM      => 'lib/Helios.pm', # finds $VERSION
     PREREQ_PM         => {   Test::Simple           => 0.72,
-                             Test::Exception        => 0.25,
-                             Sub::Uplevel           => 0.18,
                              Data::ObjectDriver     => 0.04,
                              DBI                    => 1.60,
                              TheSchwartz            => 1.04,

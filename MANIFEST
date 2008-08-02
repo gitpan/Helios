@@ -19,6 +19,7 @@ lib/Helios/JobHistory.pm
 lib/Helios/LogEntry.pm
 lib/Helios/Service.pm
 lib/Helios/TestService.pm
+lib/Helios/Tutorial.pod
 lib/Helios/Worker.pm
 lib/Helios/MetajobBurstService.pm
 LICENSE

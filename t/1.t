@@ -7,7 +7,7 @@
 
 use Test::More tests => 4;
 BEGIN { 
-	use_ok('Helios::Worker');
+	use_ok('Helios::Service');
 	# check the exception framework
 	use_ok('Helios::Error::Warning');
 	use_ok('Helios::Error::Fatal');

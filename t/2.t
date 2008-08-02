@@ -17,15 +17,15 @@ unless ( defined($ENV{HELIOS_INI}) ) {
 # let's try to read the INI file and connect to the helios database
 # (HELIOS_INI needs to be set for that)
 
-use_ok('Helios::Worker');
+use_ok('Helios::Service');
 
-$worker = new Helios::Worker;
-isa_ok($worker, 'Helios::Worker');
+$worker = new Helios::Service;
+isa_ok($worker, 'Helios::Service');
 
-ok( $worker->getParamsFromIni(), 'reading INI');
-$params = $worker->getParams();
+ok( $worker->getConfigFromIni(), 'reading INI');
+$params = $worker->getConfig();
 ok( defined($params->{dsn}), 'dsn for helios db');
 
-ok( $worker->getParamsFromDb(), 'reading helios db');
+ok( $worker->getConfigFromDb(), 'reading helios db');
 
 

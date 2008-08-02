@@ -5,7 +5,7 @@ use base qw( Helios::Service );
 use strict;
 use warnings;
 
-our $VERSION = '1.90_26';
+our $VERSION = '2.00';
 
 =head1 NAME
 
