@@ -16,6 +16,8 @@ use Helios::JobHistory;
 
 our $VERSION = '2.00';
 
+our $D_OD_RETRIES = 3;
+our $D_OD_RETRY_INTERVAL = 5;
 
 =head1 NAME
 
@@ -43,6 +45,9 @@ sub getJobid { return $_[0]->job()->jobid; }
 
 sub setFuncid { return $_[0]->job()->funcid($_[1]); }
 sub getFuncid { return $_[0]->job()->funcid; }
+
+sub setFailures { return $_[0]->job()->failures($_[1]); }
+sub getFailures { return $_[0]->job()->failures; }
 
 sub setFuncname { return $_[0]->job()->funcname($_[1]); }
 sub getFuncname { return $_[0]->job()->funcname; }
@@ -198,36 +203,34 @@ sub completed {
 	my $job = $self->job();
 
 	my $retries = 0;
-	my $retry_limit = 3;
-	RETRY:
-	try {
-		my $driver = $self->getDriver();
-		my $jobhistory = Helios::JobHistory->new(
-			jobid         => $job->jobid,
-			funcid        => $job->funcid,
-			arg           => $job->arg()->[0],
-			uniqkey       => $job->uniqkey,
-			insert_time   => $job->insert_time,
-			run_after     => $job->run_after,
-			grabbed_until => $job->grabbed_until,
-			priority      => $job->priority,
-			coalesce      => $job->coalesce,
-			complete_time => time(),
-			exitstatus    => 0
-		);
-		$driver->insert($jobhistory);
-		
-	} otherwise {
-		my $e = shift;
-		if ($retries > $retry_limit) {
-			throw Helios::Error::DatabaseError($e->text);		
-		} else {
-			$retries++;
-			sleep 5;
-			next RETRY;
-		}
-	};
-
+	RETRY: {
+        try {
+            my $driver = $self->getDriver();
+            my $jobhistory = Helios::JobHistory->new(
+                jobid         => $job->jobid,
+                funcid        => $job->funcid,
+                arg           => $job->arg()->[0],
+                uniqkey       => $job->uniqkey,
+                insert_time   => $job->insert_time,
+                run_after     => $job->run_after,
+                grabbed_until => $job->grabbed_until,
+                priority      => $job->priority,
+                coalesce      => $job->coalesce,
+                complete_time => time(),
+                exitstatus    => 0
+            );
+            $driver->insert($jobhistory);
+        } otherwise {
+            my $e = shift;
+            if ($retries > $D_OD_RETRIES) {
+                throw Helios::Error::DatabaseError($e->text);		
+            } else {
+                $retries++;
+                sleep $D_OD_RETRY_INTERVAL;
+                next RETRY;
+            }
+        };
+	}
 	$job->completed();
 	return 0;
 }
@@ -254,41 +257,41 @@ sub failed {
 	
 	my $retries = 0;
 	my $retry_limit = 3;
-	RETRY:
-	try {
-		my $driver = $self->getDriver();
-		my $jobhistory = Helios::JobHistory->new(
-			jobid         => $job->jobid,
-			funcid        => $job->funcid,
-			arg           => $job->arg()->[0],
-			uniqkey       => $job->uniqkey,
-			insert_time   => $job->insert_time,
-			run_after     => $job->run_after,
-			grabbed_until => $job->grabbed_until,
-			priority      => $job->priority,
-			coalesce      => $job->coalesce,
-			complete_time => time(),
-			exitstatus    => $exitstatus
-		);
-		$driver->insert($jobhistory);
-	} otherwise {
-		my $e = shift;
-		if ($retries > $retry_limit) {
-			$job->failed($error, $exitstatus);
-			throw Helios::Error::DatabaseError($e->text);		
-		} else {
-			$retries++;
-			sleep 5;
-			next RETRY;
-		}
-	};
-		
+	RETRY: {
+        try {
+            my $driver = $self->getDriver();
+            my $jobhistory = Helios::JobHistory->new(
+                jobid         => $job->jobid,
+                funcid        => $job->funcid,
+                arg           => $job->arg()->[0],
+                uniqkey       => $job->uniqkey,
+                insert_time   => $job->insert_time,
+                run_after     => $job->run_after,
+                grabbed_until => $job->grabbed_until,
+                priority      => $job->priority,
+                coalesce      => $job->coalesce,
+                complete_time => time(),
+                exitstatus    => $exitstatus
+            );
+            $driver->insert($jobhistory);
+        } otherwise {
+            my $e = shift;
+            if ($retries > $retry_limit) {
+                $job->failed($error, $exitstatus);
+                throw Helios::Error::DatabaseError($e->text);		
+            } else {
+                $retries++;
+                sleep 10;
+                next RETRY;
+            }
+        };
+	}	
 	$job->failed($error, $exitstatus);
 	return $exitstatus;
 }
 
 
-=head2 failedJobPermanent([$error][, $exitstatus])
+=head2 failedNoRetry([$error][, $exitstatus])
 
 Marks the job as permanently failed (no more retries allowed).
 
@@ -310,34 +313,35 @@ sub failedNoRetry {
 
 	my $retries = 0;
 	my $retry_limit = 3;
-	RETRY:
-	try {
-		my $driver = $self->getDriver();
-		my $jobhistory = Helios::JobHistory->new(
-			jobid         => $job->jobid,
-			funcid        => $job->funcid,
-			arg           => $job->arg()->[0],
-			uniqkey       => $job->uniqkey,
-			insert_time   => $job->insert_time,
-			run_after     => $job->run_after,
-			grabbed_until => $job->grabbed_until,
-			priority      => $job->priority,
-			coalesce      => $job->coalesce,
-			complete_time => time(),
-			exitstatus    => $exitstatus
-		);
-		$driver->insert($jobhistory);
-	} otherwise {
-		my $e = shift;
-		if ($retries > $retry_limit) {
-			$job->permanent_failure($error, $exitstatus);
-			throw Helios::Error::DatabaseError($e->text);		
-		} else {
-			$retries++;
-			sleep 5;
-			next RETRY;
-		}
-	};
+	RETRY: {
+        try {
+            my $driver = $self->getDriver();
+            my $jobhistory = Helios::JobHistory->new(
+                jobid         => $job->jobid,
+                funcid        => $job->funcid,
+                arg           => $job->arg()->[0],
+                uniqkey       => $job->uniqkey,
+                insert_time   => $job->insert_time,
+                run_after     => $job->run_after,
+                grabbed_until => $job->grabbed_until,
+                priority      => $job->priority,
+                coalesce      => $job->coalesce,
+                complete_time => time(),
+                exitstatus    => $exitstatus
+            );
+            $driver->insert($jobhistory);
+        } otherwise {
+            my $e = shift;
+            if ($retries > $retry_limit) {
+                $job->permanent_failure($error, $exitstatus);
+                throw Helios::Error::DatabaseError($e->text);		
+            } else {
+                $retries++;
+                sleep 10;
+                next RETRY;
+            }
+        };
+	}
 
 	$job->permanent_failure($error, $exitstatus);
 	return $exitstatus;

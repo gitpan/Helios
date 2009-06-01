@@ -17,6 +17,7 @@ lib/Helios/Error/Warning.pm
 lib/Helios/Job.pm
 lib/Helios/JobHistory.pm
 lib/Helios/LogEntry.pm
+lib/Helios/LogEntry/Levels.pm
 lib/Helios/Service.pm
 lib/Helios/TestService.pm
 lib/Helios/Tutorial.pod

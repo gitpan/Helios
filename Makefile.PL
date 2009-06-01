@@ -5,7 +5,7 @@ use ExtUtils::MakeMaker;
 # # the contents of the Makefile that is written.
 WriteMakefile(
     NAME              => 'Helios',
-    AUTHOR            => 'Andrew Johnson <ajohnson at ittoolbox dotcom>',
+    AUTHOR            => 'Andrew Johnson <lajandy at cpan dotorg>',
     ABSTRACT          => 'A framework for developing asynchronous distributed job processing applications.',
     LICENSE           => 'perl',
     VERSION_FROM      => 'lib/Helios.pm', # finds $VERSION
@@ -20,7 +20,6 @@ WriteMakefile(
                              XML::NamespaceSupport  => 1.04,
                              XML::SAX               => '',
                              XML::Simple            => 2.18,
-                             Sys::Syslog            => 0.23,
                              Sys::Hostname          => 1.00,
                              Bundle::LWP            => '',
                              Pod::Usage             => ''

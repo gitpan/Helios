@@ -1,5 +1,42 @@
 Revision history for Perl extension Helios.
 
+2.22  Thu May 21 11:30:00 2009
+	-Helios::Service: fixed a bug in getFuncidFromDb() that caused 
+	 services to fail to load properly if there was no entry for them 
+	 in FUNCMAP table.
+	-helios.pl: Several revisions to make it a more robust daemon. Now
+	 honors TERM signal; 'kill <pid>' from a shell will attempt to 
+	 safely shut down workers and daemon process w/o using Panoptes
+	-Documentation updates
+2.21  Thu May 14 17:00:00 2009
+	-added set/getJob() accessors to facilitate access to current 
+	 Helios::Job object from methods other than run()
+2.20  Tue Apr 28 18:00:00 2009
+    -various tweaks for cross-platform compatibility
+    -documentation additions/corrections
+    -added Helios::LogEntry::Levels to remove dependencies on 
+     Sys::Syslog
+    -helios.pl: Cleaned up messages to console after daemonize
+	-helios.pl + Helios::Service: added support for WORKER_MAX_TTL 
+	 config param
+    -Helios::Service: added JobClass() allow extensible Helios::Job 
+     classes
+    -Helios::Service: added MaxRetries() and RetryInterval() to replace
+     TheSchwartz's max_retries() and retry_interval() (this is not an 
+     abitrary change; it's to allow for extensions at the Helios layer 
+     in the future)
+    -Helios::Service: added default run() method for class completeness
+     (it throws a Helios::Error::FatalNoRetry error because you forgot 
+     to implement a run() method)
+    -Helios::Service: removed logging to syslogd to eliminate 
+     Sys::Syslog dependency (see HeliosX::ExtLoggerService)
+    -Helios::Service: added set/getFuncid(), getFuncidFromDb() and 
+     changed jobWaiting() to use them.  This eliminates an unnecessary 
+     database query previously done every time jobsWaiting() was called
+    -Helios::Service: added support for log_priority_threshold config 
+     param
+    -Helios::Job: added getFailures() to access the number of times a 
+     job has previously failed
 2.00  Fri Aug 01 02:00:00 2008
 	-First public production release (same as 1.90_26 w/more documentation)
 1.90_26 Thu Jun 26 11:30:00 2008

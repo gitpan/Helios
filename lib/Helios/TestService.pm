@@ -6,12 +6,12 @@ use strict;
 use warnings;
 
 use Error qw(:try);
-use Sys::Syslog qw(:standard :macros);
 
 use Helios::Error;			# pulls in all Helios::Error::* exception types
 use Helios::Job;
+use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.00';	# necessary for packaging purposes
+our $VERSION = '2.20';	# necessary for packaging purposes
 
 =head1 NAME
 

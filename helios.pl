@@ -1,19 +1,23 @@
 #!/usr/bin/perl
 
+use 5.008;
 use strict;
 use warnings;
+use FindBin ();
+use File::Basename ();
+use File::Spec;
 use Getopt::Long;
 use POSIX;
 
 use Error qw(:try);
 use Sys::Hostname;
-use Sys::Syslog qw(:standard :macros);
 use TheSchwartz;
 
 use Helios;
 use Helios::Error;
+use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.00';
+our $VERSION = '2.22';
 
 =head1 NAME
 
@@ -23,40 +27,46 @@ helios.pl - Launch a daemon to service jobs in the Helios job processing system
 
  export HELIOS_INI=/path/to/helios.ini
  [export HELIOS_DEBUG=1]
- helios.pl I<jobclass> [--clear-halt]
+ helios.pl <jobclass> [--clear-halt]
+
+ # just prints version info
+ helios.pl --version
 
 =head1 DESCRIPTION
 
-The helios.pl program, given a subclass of Helios::Worker, will launch a daemon to service Helios 
+The helios.pl program, given a subclass of Helios::Service, will launch a daemon to service Helios 
 jobs of that subclass.  The number of worker processes to run concurrently and various other 
-parameters are set via a helios.ini file and the Helios MySQL database (the connection information 
+parameters are set via a helios.ini file and the Helios database (the connection information 
 of which is also defined in helios.ini).
 
-Under normal operation, helios.pl will attempt to load the worker class specified on the command 
+Under normal operation, helios.pl will attempt to load the service class specified on the command 
 line and use it to read the contents of the helios.ini file.  If successful, it will attempt to 
-connect to the Helios parameter database and read the relevant parameters from there.  If that is 
-successful, helios.pl will daemonize and start servicing jobs of the specified class.
+connect to the Helios collective database and read the relevant configuration parameters from 
+there.  If that is successful, helios.pl will daemonize and start servicing jobs of the specified 
+class.
 
 In debug mode (set HELIOS_DEBUG=1), helios.pl will not disconnect from the terminal, and will 
-output extra debugging information to the screen and the logfile.  It will also enable debug mode 
-on the worker class, which may also support outputting debugging information.
+output extra debugging information to the screen and the Helios log.  It will also enable debug mode 
+on the service class, which may also support the output of extra debugging information.
 
-If the --clear-halt is specified, helios.pl will attempt to remove a HALT parameter specified in 
-the Helios configuration parameters (the helios_params_tb table).  This is helpful if you shutdown 
-your Helios service daemon using the Panoptes worker admin view.  Note that it will NOT remove a 
-HALT specified globally (where host = '*').
+If the --clear-halt option is specified, helios.pl will attempt to remove a HALT
+parameter specified in the Helios configuration for the specified service on the
+current host.  This is helpful if you shutdown your Helios service daemon using 
+the Helios::Panoptes Collective Admin view.  Note that it will NOT remove a HALT
+specified globally (where host = '*').
 
 =head1 HELIOS.INI
 
 The initial parameters for helios.pl are defined in an INI-style configuration file typically 
 named "helios.ini".  The file's location is normally specified by setting the HELIOS_INI 
-environment variable before helios.pl is started.  If HELIOS_INI isn't set, helios.pl will default 
+environment variable before helios.pl is started.  If HELIOS_INI is not set, helios.pl will default 
 to the helios.ini in the current directory, if present.
 
-A helios.ini file normally contains a [global] section with the parameters necessary to connect 
-to the Helios parameter database, and any parameters local to the server the workers run on (e.g. 
-log facility and options).  In addition, each worker class can have a section in helios.ini 
-containing parameters local only to them.
+A helios.ini file normally contains a [global] section with the parameters 
+necessary to connect to the Helios collective database, and any parameters local
+to the host on which the Helios service is currently running.  In addition, 
+each service class may have its own section in helios.ini containing 
+parameters specfic to that service on that host.
 
 Example helios.ini:
 
@@ -64,10 +74,8 @@ Example helios.ini:
  dsn=dbi:mysql:host=10.1.0.21;db=helios_db
  user=helios
  password=password
- syslog_facility=user
- syslog_options=nofatal,pid
 
- [ITTB::BroadcastService]
+ [LongRunningJobService]
  master_launch_interval=60
  zero_launch_interval=90
 
@@ -94,39 +102,30 @@ Database user for the datasource name described above.
 
 Database password for the datasource name described above.
 
-=item syslog_facility
-
-The syslog log facility to send log messages.  The worker class will also log messages to this 
-facility.  If a syslog_facility isn't defined, logging to syslog is disabled.  (Uses Sys::Syslog 
-CPAN module.)
-
-=item syslog_options
-
-Any desired options for logging to the syslog facility.
-
 =item pid_path
 
-The location where helios.pl should write the PID file for this worker.  The default is 
-"/var/run/helios".  The name of the PID file will be a variation on the worker class's name.
+The location where helios.pl should write the PID file for this service 
+instance.  The default is "/var/run/helios".  The name of the PID file will be 
+a variation on the service class's name.
 
 =back
 
-=head3 Configuration options to place in individual class sections:
+=head3 Configuration options to place in individual service sections:
 
 =over 4
 
 =item master_launch_interval
 
 Set the master_launch_interval to determine how long helios.pl should sleep after launching 
-jobs before accessing the database to update its configuration parameters and check for waiting 
+workers before accessing the database to update its configuration parameters and check for waiting 
 jobs.  The default is 1 second which works well for normally short-lived jobs (2 secs or less), 
 but that may be overkill for longer-lived jobs (jobs that run longer than 2 sec).  Setting the 
-master_launch_interval option helps prevent needless database traffic.
+master_launch_interval option may help prevent needless database traffic for longer running jobs.
 
 =item zero_launch_interval
 
 Set the zero_launch_interval to determine how long helios.pl should sleep after reaching its 
-MAX_WORKERS limit.  The default is 2 sec.  If jobs are running long enough that 
+MAX_WORKERS limit.  The default is 10 sec.  If jobs are running long enough that 
 helios.pl is frequently hitting is MAX_WORKERS limit (there are waiting jobs but 
 helios.pl can't launch new workers because previously launched jobs are still running), increasing 
 the zero_launch_interval will reduce needless database traffic.
@@ -136,15 +135,13 @@ the zero_launch_interval will reduce needless database traffic.
 =head1 HELIOS CTRL PANEL (helios_params_tb)
 
 In addition to helios.ini, certain helios.pl configuration options can be set via the Ctrl Panel 
-in the Helios Panoptes web interface.  These configuration options are read by helios.pl from the 
-helios_params_tb table in the Helios database.  Though the Ctrl Panel is designed mostly to 
-provide a standardized interface for worker classes to store and retrieve configuration 
-parameters, certain helios.pl control parameters can be read from here as well.  The helios.pl 
-worker daemon will read the parameters via the worker class's getParams() method, so parameters 
-can be set for a specific class on a specific host.
+in the Helios::Panoptes web interface.  These configuration options are read by helios.pl from the 
+HELIOS_PARAMS_TB table in the Helios database.  Though the Ctrl Panel is designed mostly to 
+provide a standardized interface for service classes to store and retrieve configuration 
+parameters, certain helios.pl control parameters can be set here as well.  
 
 The helios.pl daemon will refresh its configuration parameters from the database after waiting 
-master_launch_interval seconds after launching worker child processes.  If MAX_WORKERS
+master_launch_interval seconds after launching worker processes.  If MAX_WORKERS
 workers are still running, the helios.pl daemon will wait zero_launch_interval seconds to refresh
 its configuration parameters and try to launch workers again.  If you have long running jobs (jobs 
 that last more than a few seconds), resetting these parameters higher may help smooth processing 
@@ -157,12 +154,12 @@ information.
 
 =item MAX_WORKERS
 
-The Helios system is designed to run one daemon process for each worker class per server.  However, 
-each daemon can run more than 1 worker child process simultaneously.  The upper limit for worker 
+The Helios system is designed to run one daemon process for each service class per host.  However, 
+each service daemon can run more than 1 worker process simultaneously.  The upper limit for worker 
 processes is set using the MAX_WORKERS option.  The helios.pl default is 1 worker per 
 server.  You can provide a different default for a particular class by specifying a value in 
 helios.ini.  If active management of available workers is not necessary for a 
-particular worker class, this option can be set in helios.ini.
+particular service class, this option can be set in helios.ini.
 
 =item OVERDRIVE
 
@@ -170,45 +167,51 @@ Speed up job processing by allowing workers to service jobs until no more are in
 Normally, a worker process will service a single job and then exit (1:1 worker/job ratio).  With 
 OVERDRIVE mode enabled, a worker process will keep servicing jobs until it can find no more of 
 that type in the job queue (1:many worker/job ratio).  This may help to speed up processing for 
-short-lived jobs, as once worker child processes have started, they stay in memory, continuing to 
+short-lived jobs, as once a worker process has started, it will stay in memory, continuing to 
 process jobs until there are no more to process.  This can also enable on-the-fly caching of 
 resources, as once a worker has loaded a resource or established a database connection for a job 
 it can be held for use by subsequent jobs, potentially reducing database load or disk I/O.  Longer 
 running jobs may not benefit as much, however.
 
-A few extra precautions should be taken in a worker class in order to support OVERDRIVE mode.  If 
-the worker class should explicitly exit() if it encounters an error to prevent the error from 
-affecting subsequent jobs.  After processing a job successfully (at the end of the work() method)
-the process should also exit if the Helios::Worker->shouldExitOverdrive() returns a true value.
-
 Like MAX_WORKERS, if active management of the job processing mode is not necessary, this
-parameter can be set in helios.ini (though that is strongly discouraged).
+parameter can be set in helios.ini (though that is discouraged).
 
 =item HOLD
 
-If set to 1, a HOLD parameter will cause the helios.pl worker daemon to stop launching new workers 
+If set to 1, a HOLD parameter will cause the helios.pl service daemon to stop launching new workers 
 to process jobs.  Currently processing jobs will be allowed to complete, and those worker 
-child processes will end normally.  HOLD = 1 will also cause the 
-Helios::Worker->shouldExitOverdrive() method to return a true value, which should cause workers 
-that correctly support that mode to end after their current job is completed.  
+processes will end normally.    
 
 Setting HOLD to 0 will allow normal job processing to resume.
 
 =item HALT
 
-If a HALT parameter is defined, the helios.pl worker daemon will start process cleanup and will 
-exit.  As with HOLD = 1, jobs currently processing will complete, and the worker child processes 
-will exit normally.  HALT will cause Helios::Worker->shouldExitOverdrive() to return a true value, 
-which should cause workers supporting OVERDRIVE mode to exit after they have finished the current 
-job.
+If a HALT parameter is defined, the helios.pl service daemon will start process cleanup and will 
+exit.  As with HOLD = 1, jobs currently processing will complete, and the worker processes 
+will exit normally.  
 
-Once a helios.pl daemon has HALTed, there is no way to restart it from the Helios Pantoptes 
-interface.  It must be restarted from the command line with a 'helios.pl <worker::class>' command.
+Once a helios.pl daemon has HALTED, there is no way to restart it from the Helios::Pantoptes 
+interface.  It must be restarted from the command line with a 'helios.pl <serviceclass>' command.
+
+As of Helios 2.22, service daemons can also be shut down in the normal *nix manner of using 
+the 'kill' command to send the daemon a SIGTERM signal.
+
+=item WORKER_MAX_TTL
+
+The time in seconds to allow a worker to run.  If you have a problem with 
+workers that get stuck while performing a job (perhaps waiting for a database
+connection, or some other problem), you can set WORKER_MAX_TTL for that service.
+The helios.pl program will check to see if workers for that service are 
+running beyond their intended time-to-live, and kill them if they run too long.
 
 =back
 
 =cut
 
+# for SIGHUP support
+our @ORIGINAL_ARGV = @ARGV;
+my $basename = File::Basename::basename($0);
+our $HELIOS_PL_PATH = File::Spec->catfile($FindBin::Bin, $basename);
 
 # globals settings
 our $DEBUG_MODE = $ENV{HELIOS_DEBUG};
@@ -218,12 +221,12 @@ our $CLASS = shift @ARGV;
 # other globals
 # max workers will default to 1 if not set elsewhere
 our %DEFAULTS = (
-        MAX_WORKERS => 1,
-        HELIOS_INI => './helios.ini',
-		PID_PATH => '/var/run/helios',
-		MASTER_LAUNCH_INTERVAL => 1,
-		ZERO_LAUNCH_INTERVAL => 10,
-		ZERO_SLEEP_INTERVAL => 30
+    MAX_WORKERS => 1,
+    HELIOS_INI => File::Spec->catfile(File::Spec->curdir,'helios.ini'),
+    PID_PATH => File::Spec->catfile(File::Spec->rootdir, 'var', 'run', 'helios'),
+    MASTER_LAUNCH_INTERVAL => 1,
+    ZERO_LAUNCH_INTERVAL => 10,
+    ZERO_SLEEP_INTERVAL => 30
 );
 our $CLEAN_SHUTDOWN = 1;				# used to determine if we should remove the PID file or not (at least for now)
 
@@ -255,6 +258,8 @@ if ( !defined($CLASS) || ($CLASS eq '--help') || ($CLASS eq '-h') ) {
 my $worker_class = $CLASS;
 print "Helios ",$Helios::VERSION,"\n";
 print "helios.pl Service Daemon version $VERSION\n";
+# --version support
+if ( $CLASS eq '--version') { exit(); }
 print "Attempting to load $worker_class...\n"; 
 unless ( $worker_class->can('new') ) {
         eval "require $worker_class";
@@ -340,7 +345,7 @@ if ( defined($ARGV[0]) && lc($ARGV[0]) eq '--clear-halt' ) {
 	$params = $worker->getConfig();
 }
 if ( defined($params->{HALT}) ) {
-	print STDERR "HALT is set for this service class.\n";
+	print STDERR "HALT is set for this service class.\n";
 	print STDERR "Please clear it and try again.\n";
 	print STDERR $worker_class," HALTED.\n";
 	exit(1);
@@ -364,12 +369,13 @@ unless ($DEBUG_MODE) {
 
 # set up signal handler to reap dead children
 $SIG{CHLD} = \&reaper;
+$SIG{TERM} = \&terminator;
 
 =head1 HELIOS OPERATION
 
 After initial setup, the helios.pl daemon will enter a main operation loop where configuration 
-parameters are refreshed, the job queue is checked, and worker child processes are launched and 
-cleaned up after.  A HOLD  = 1 parameter will temporarily cause the loop to pause processing, while
+parameters are refreshed, the job queue is checked, and worker processes are launched and 
+cleaned up after.  A HOLD = 1 parameter will temporarily cause the loop to pause processing, while
 a HALT parameter will cause the helios.pl daemon to exit the loop, clean up, and exit.
 
 There are several steps in the helios.pl main operation loop:
@@ -378,7 +384,7 @@ There are several steps in the helios.pl main operation loop:
 
 =item 1.
 
-Refresh configuration parameters from database
+Refresh configuration parameters from database.
 
 =item 2.
 
@@ -387,21 +393,22 @@ zero_sleep_interval seconds and start again).
 
 =item 3.
 
-If there are jobs available, check to see how many worker child processes are currently running.  
+If there are jobs available, check to see how many worker processes are currently running.  
 If MAX_WORKERS workers are already running, sleep for zero_launch_interval seconds and 
 start again.  The zero_launch_interval setting should be long enough to allow at least some of 
-the running jobs to complete.
+the running jobs to complete (the default is 10 secs).
 
 =item 4.
 
-Subtract the number of currently running workers from MAX_WORKERS and launch that many
-workers to handle the available jobs.  If MAX_WORKERS is 5 and only 2 workers are 
-running, that means the helios.pl daemon will launch 3 workers.
+Subtract the number of currently running workers from MAX_WORKERS and launch that 
+many workers to handle the available jobs.  If MAX_WORKERS is 5 and only 2 
+workers are running, that means the helios.pl daemon will launch 3 workers.  If 
+there are less than MAX_WORKERS jobs available for processing, only 1 worker 
+will be launched to reduce job contention between workers in the collective.
 
 =item 5.
 
-Sleep master_launch_interval seconds and start again.  The master_launch_interval setting should be
-long enough to allow at least some of the jobs to complete.
+Sleep master_launch_interval seconds and start the operation loop again.
 
 =back
 
@@ -427,17 +434,21 @@ MAIN_LOOP:{
 					register();
 					$REGISTRATION_LAST = time();
 				}
-
 		
 				# HOLDING JOB PROCESSING
 				# hold launching jobs temporarily
 				if ( defined($params->{HOLD}) && ($params->{HOLD} == 1) ) {
 					if ( $HOLD_LOG_LAST + $HOLD_LOG_INTERVAL < time() ) {
-						$worker->logMsg("$0 $worker_class HOLDING"); 
+						$worker->logMsg(LOG_NOTICE, "$0 $worker_class HOLDING"); 
 						$HOLD_LOG_LAST = time();
 					}
 					if ($DEBUG_MODE) { print "$0 $worker_class HOLDING\n"; }
 					sleep 60; 
+					# after the first cycle through HOLD, the workers had BETTER be dead  #[]?
+					if ( defined($params->{WORKER_MAX_TTL}) && $params->{WORKER_MAX_TTL} > 0 
+					       && scalar(keys %workers) ) {
+					    double_clutch();
+					}
 					next; 
 				}
 				# once we're not holding anymore, we'll want to log the next time we enter HOLD mode
@@ -461,7 +472,7 @@ MAIN_LOOP:{
 						# only log the "0 workers running, 0 workers in queue.  SLEEPING" message every $ZERO_SLEEP_LOG_INTERVAL seconds
 						# (necessary to prevent overwhelming database logging with messages we don't care about)
 						if ( ($running_workers == 0) && (($ZERO_SLEEP_LOG_LAST + $ZERO_SLEEP_LOG_INTERVAL ) < time()) ) {
-							$worker->logMsg($running_workers." workers running, ".$waiting_jobs." in queue.  SLEEPING");
+							$worker->logMsg(LOG_NOTICE, $running_workers." workers running, ".$waiting_jobs." in queue.  SLEEPING");
 							$ZERO_SLEEP_LOG_LAST = time();
 						}
 						sleep $ZERO_SLEEP_INTERVAL;
@@ -481,14 +492,14 @@ MAIN_LOOP:{
 				if ( ($workers_to_launch > 0) && ($waiting_jobs < $max_workers) ) {
 					$workers_to_launch = 1;
 				}
-				$worker->logMsg("$waiting_jobs jobs waiting; $running_workers workers running; launching $workers_to_launch workers");
+				$worker->logMsg(LOG_NOTICE, "$waiting_jobs jobs waiting; $running_workers workers running; launching $workers_to_launch workers");
 				for (my $i = 0; $i < $workers_to_launch; $i++) {
 		
 						FORK: {
 							if ($pid = fork) {
 										# I'm the parent!
-										$workers{$pid} = 1;
-										if ($DEBUG_MODE) { $worker->logMsg($worker->getJobType()." process $pid launched");	}
+										$workers{$pid} = time();
+										if ($DEBUG_MODE) { $worker->logMsg(LOG_NOTICE, $worker->getJobType()." process $pid launched");	}
 										sleep 1;
 								} elsif (defined $pid) { # $pid is zero here if defined
 										# I'm the child!
@@ -517,6 +528,9 @@ MAIN_LOOP:{
 				if ( $workers_to_launch <= 0 ) { 
 					if ( $DEBUG_MODE ) { $worker->logMsg(LOG_DEBUG, "MAX WORKERS REACHED, SLEEPING"); }
 					sleep $ZERO_LAUNCH_INTERVAL; 
+					if ( defined($params->{WORKER_MAX_TTL}) && $params->{WORKER_MAX_TTL} > 0 ) {
+					    double_clutch();
+					}
 					next;
 				}
 
@@ -574,14 +588,15 @@ if ($CLEAN_SHUTDOWN) {
 	# if we're cleanly shutting down (we were told to via helios_params_tb)
 	# unregister from Helios database
 	# remove our PID
-	clean_shutdown();
+#[]	clean_shutdown();
+    terminator();
 } else {
 	# if we've had a db error, this will throw an exception when it tries to log to the database
 	# BUT BEFORE it does that, the error will have been logged to the local syslog daemon
-	$worker->logMsg(LOG_CRIT,"$0 $worker_class HALTED on error: ".$worker->errstr);
+	$worker->logMsg(LOG_ERR,"$0 $worker_class HALTED on error: ".$worker->errstr);
 }
 
-$worker->logMsg("$0 $worker_class HALTED");
+#[] $worker->logMsg(LOG_NOTICE, "$0 $worker_class HALTED");
 if ($DEBUG_MODE) { print "$0 $worker_class HALTED!\n"; }
 
 exit();
@@ -589,72 +604,29 @@ exit();
 
 =head1 SUBROUTINES
 
-=head2 launch_worker()
-
-The launch_worker() function launches a new TheSchwartz worker of the type specified on the
-command line.  After the fork() from the main process, if the process is the child, it calls
-launch_worker() to instantiate a new TheSchwartz object, identify the object as one of a certain
-job type (TheSchwartz calls it B<ability>), and starts the worker on its way by calling the work()
-(or work_until_done(), if OVERDRIVE is enabled) method.
-
-=cut
-
-sub launch_worker {
-	my $client = TheSchwartz->new(databases => $DATABASES_INFO);
-	$client->can_do($worker_class);
-	my $return;
-	if ( defined($params->{OVERDRIVE}) && $params->{OVERDRIVE} == 1 ) {
-		$return = $client->work_until_done();			
-	} else {
-		$return = $client->work_once();
-	}
-	exit($return);
-}
-
-
-=head2 reaper()
-
-The reaper() function is responsible for cleaning up after dead child processes.  It's called when 
-helios.pl receives a SIG_CHLD signal.  The function reaps any children with waitpid(), removes the 
-child's PID from the $workers hash of running workers, and re-establishes itself as the signal 
-handler for the next SIG_CHLD signal.
-
-Don't fear the reaper.
-
-=cut
-
-sub reaper {
-	my $pid;
-	print "REAPING!\n";
-	while (($pid = waitpid(-1, &WNOHANG)) > 0) {
-		if ($pid == -1) {
-			print "REAPED IGNORING\n";
-			# no child waiting.  Ignore it.
-		} elsif (WIFEXITED($?)) {
-			delete $workers{$pid};
-			print "REAPED Process $pid exited.\n";
-			print "REAPED $pid: $?\n";
-		} else {
-			print "REAPED False alarm on $pid.\n"
-		}
-	}
-	print "FINISHED REAPING\n";
-	$SIG{CHLD} = \&reaper;
-	print "EXIT REAPER!\n";
-}
-
+=head1 PROCESS CONTROL FUNCTIONS
 
 =head2 daemonize() 
 
-The daemonize() function is called to turn the Helios program into a daemon servicing jobs of a 
-particular class.  It forks a new process, which disconnects from the launching terminal.
+The daemonize() function is called to turn the Helios program into a daemon 
+servicing jobs of a particular class.  It forks a new process, which disconnects
+from the launching terminal.
 
-Normally, daemonization also including setting up signal handling, but daemonize() isn't called 
-in debug mode, so signal traps are actually set up in the main program.
+Normally, daemonization would also include setting up signal handling, but the 
+daemonize() function isn't called in debug mode, so signal traps are actually 
+set up in the main program.
 
 =cut
 
 sub daemonize {
+    # prep system interaction stuff
+    # attempt to be a good daemon (unlike in the past) 
+    chdir File::Spec->rootdir();
+    # don't think I need these w/close()ing them below, 
+    # but I'll put them in for perlipc's sake anyway
+    open STDIN, '/dev/null';
+    open STDOUT, '>/dev/null';
+    
 	my $pid = fork;   
 	# make sure fork was successful
 	unless ( defined($pid) ) {
@@ -686,11 +658,198 @@ sub daemonize {
 }
 
 
+=head2 double_clutch() 
+
+The double_clutch() function implements the WORKER_MAX_TTL functionality.  If 
+the WORKER_MAX_TTL parameter is set for a service, the service daemon 
+periodically calls double_clutch() to check the workers and clean up any that 
+have run too long.  The double_clutch() function waits a certain amount of time 
+(zero_launch_interval x2 secs), then checks the amount of time each of the 
+running workers has been active.  If a worker has been running longer than the 
+service's WORKER_MAX_TTL, the worker is killed (by sending it a SIGKILL signal).
+
+=cut
+
+sub double_clutch {
+    # sleep $ZERO_LAUNCH_INTERVAL secs before we double check on workers
+    sleep $ZERO_LAUNCH_INTERVAL;
+    sleep $ZERO_LAUNCH_INTERVAL;
+    foreach my $pid (keys %workers) {
+        my $time_of_death = $workers{$pid} + $params->{WORKER_MAX_TTL};
+        if ( time() > $time_of_death ) {
+            kill 9, $pid;
+            delete $workers{$pid};
+            $worker->logMsg(LOG_ERR, "Killed process $pid (exceeded WORKER_MAX_TTL)");
+        }
+    }
+    return 1;
+}
+
+
+=head2 launch_worker()
+
+The launch_worker() function launches a new worker process.  
+After the fork() from the main process, the new child process will call 
+launch_worker().  The launch_worker() function will instantiate a new 
+TheSchwartz object, set the object's B<ability> (TheSchwartz term) to the class 
+of the loaded service, and starts the worker on its way by calling the work() 
+method.  If the OVERDRIVE run mode is enabled for the service, the 
+work_until_done() method is called instead.
+
+=cut
+
+sub launch_worker {
+    # just in case this would cause a problem in worker process
+    $SIG{CHLD} = 'DEFAULT';
+    $SIG{TERM} = 'DEFAULT';
+	my $client = TheSchwartz->new(databases => $DATABASES_INFO);
+	$client->can_do($worker_class);
+	my $return;
+	if ( defined($params->{OVERDRIVE}) && $params->{OVERDRIVE} == 1 ) {
+		$return = $client->work_until_done();			
+	} else {
+		$return = $client->work_once();
+	}
+	exit($return);
+}
+
+
+=head1 SIGNAL HANDLERS
+
+=head2 reaper()
+
+The reaper() function is responsible for cleaning up after dead child processes.  It's called when 
+helios.pl receives a SIG_CHLD signal.  The function reaps any children with waitpid(), removes the 
+children's PID from the $workers hash of running workers, and re-establishes itself as the signal 
+handler for the next SIG_CHLD signal.
+
+=cut
+
+sub reaper {
+	my $pid;
+	if ($DEBUG_MODE) { print "REAPING!\n"; }
+	while (($pid = waitpid(-1, &WNOHANG)) > 0) {
+		if ($pid == -1) {
+			if ($DEBUG_MODE) { print "REAPED IGNORING\n"; }
+			# no child waiting.  Ignore it.
+		} elsif (WIFEXITED($?)) {
+			delete $workers{$pid};
+			if ($DEBUG_MODE) { print "REAPED Process $pid exited.\n"; }
+			if ($DEBUG_MODE) { print "REAPED $pid: $?\n"; }
+		} else {
+			if ($DEBUG_MODE) { print "REAPED False alarm on $pid.\n" }
+		}
+	}
+	if ($DEBUG_MODE) { print "FINISHED REAPING\n"; }
+	$SIG{CHLD} = \&reaper;
+	if ($DEBUG_MODE) { print "EXIT REAPER!\n"; }
+}
+
+
+=head2 terminator()
+
+The terminator() function is responsible for shutting down a Helios service 
+instance when helios.pl receives a SIGTERM signal.  The shutdown process 
+performs several steps:
+
+=over 4
+
+=item * 
+
+Sets HALT in the Helios config params for the loaded service, so the 
+worker processes know to exit at the end of their current job
+
+=item * 
+
+Sleeps a certain amount of time (zero_launch_interval x 2 secs) to 
+allow worker processes to complete the jobs they are processing and exit
+
+=item * 
+
+Reaps any ended worker processes, and forcably kills any that are still 
+running.  After zero_launch_interval seconds, workers for a particular service 
+should have exited if HALT is set.  If you use this method of shutting down 
+Helios services and repeatedly see a particular service's workers not exiting 
+properly, increase the value of the zero_launch_interval configuration 
+parameter for that service in your helios.ini or Helios::Panoptes Ctrl Panel. 
+
+=item * 
+
+Clears the HALT parameter set earlier, since all of the workers are now 
+shut down (one way or the other).
+
+=item * 
+
+Removes the service's PID file written in the pid_path set in 
+helios.ini
+
+=item * 
+
+Unregister's with the Helios collective's registry table in the Helios
+database
+
+=item * 
+
+Issues a final log message indicating the loaded service has shut down 
+on the current host
+
+=back
+
+Once all these steps are complete, the helios.pl program exits.
+
+
+=cut
+
+sub terminator {
+    my $TERM = 0;
+    # did we receive a SIGTERM, or was the HALT config param set?
+    if ( defined($params->{HALT}) ) {
+        $worker->logMsg(LOG_NOTICE, "HALTING $CLASS on host ".$worker->getHostname());
+    } else {
+        # tell the workers they need exit
+        $TERM = 1;
+        $worker->logMsg(LOG_NOTICE, "Received TERM signal; HALTING $CLASS on host ".$worker->getHostname());
+        $worker->logMsg(LOG_NOTICE, "Setting HALT for $CLASS on host ".$worker->getHostname());
+        set_halt();
+    }
+
+    # sleep long enough for the workers to shutdown on their own
+    $SIG{CHLD} = 'DEFAULT';
+    sleep $ZERO_LAUNCH_INTERVAL;
+    sleep $ZERO_LAUNCH_INTERVAL;
+    # reap any processes that ended while we were sleeping
+    $worker->logMsg(LOG_NOTICE, "Reaping $CLASS workers on host ".$worker->getHostname());
+    reaper();
+    
+    # kill any workers still running (they've had plenty of time to end on their own)
+    foreach my $pid (keys %workers) {
+        if ( kill 0 => $pid ) {
+            # it's still alive, kill it
+            kill 9, $pid;
+            $worker->logMsg(LOG_ERR, "Killed process $pid (shutdown $CLASS instance)");
+        }
+        delete $workers{$pid};
+    }
+       
+    # workers are all taken care of, shutdown ourself
+    # only clear the HALT if we received a SIGTERM (we set the halt ourselves)
+    if ($TERM) { 
+        clear_halt(); 
+        $worker->logMsg(LOG_NOTICE, "Cleared HALT for $CLASS on host ".$worker->getHostname());
+    }
+    clean_shutdown();
+    $worker->logMsg(LOG_NOTICE, "$CLASS on host ".$worker->getHostname().' HALTED.');
+    exit(1);
+}
+
+
+=head1 PID FILE FUNCTIONS
+
 =head2 write_pid_file($pid_path)
 
 Writes a PID file to a location (defaults to /var/run/helios) to track which daemons are 
-running.  The file will be named after the worker class running, all lowercase, with colons 
-replaced by underscores.  For example, the PID file for a worker class named 
+running.  The file will be named after the service class running, all lowercase, with colons 
+replaced by underscores.  For example, the PID file for a service class named 
 'SearchIndex::LoadTestWorker' will be named "searchindex__loadtestworker.pid".  To change the 
 location where the PID file is created, set the pid_path option in helios.ini.
 
@@ -707,7 +866,7 @@ sub write_pid_file {
 	# Determine PID filename
 	my $filename = lc($worker_class);
 	$filename =~ s/\:/\_/g;
-	$PID_FILE = $pid_path . '/' . $filename . '.pid';
+	$PID_FILE = File::Spec->catfile($pid_path, $filename.'.pid');
 	if ($DEBUG_MODE) { print "Writing pid file $PID_FILE\n";	}
 	
 	open $fh, ">", $PID_FILE or do { $worker->errstr("Cannot write PID file $PID_FILE: ".$!); return undef; };
@@ -720,9 +879,8 @@ sub write_pid_file {
 
 =head2 remove_pid_file($pid_file)
 
-During a clean shutdown, the PID file should be removed.  If the daemon encountered an 
-unrecoverable error, this function shouldn't be called, and a cron job on the server 
-should notice the process has disappeared and restart it.
+During a clean shutdown, remove_pid_file() is called to delete the PID file 
+associated with the service daemon.
 
 =cut
 
@@ -753,7 +911,7 @@ sub running_process_check {
 	# Determine PID filename
 	my $filename = lc($worker_class);
 	$filename =~ s/\:/\_/g;
-	$PID_FILE = $pid_path . '/' . $filename . '.pid';
+	$PID_FILE = File::Spec->catfile($pid_path, $filename.'.pid');
 	if ($DEBUG_MODE) { print "Checking $PID_FILE\n"; }
 
 	# check if this file exists
@@ -772,35 +930,14 @@ sub running_process_check {
 }
 
 
-=head2 clear_halt()
-
-If the --clear-halt option is specified on the command line, clear_halt() is called to attempt to 
-clear the HALT parameter in the helios_params_tb.  For safety reasons, it only clears a HALT for 
-the loaded service class AND the specific host helios.pl is running on; it will not clear a global
-HALT parameter (where the host is specified as '*').
-
-=cut
-
-sub clear_halt {
-	try {
-		if ($DEBUG_MODE) { 
-			print "Attempting to delete HALT for ",$worker->getJobType()," on ",$worker->getHostname(),"\n"; 
-		}
-		my $dbh = $worker->dbConnect();
-		$dbh->do("DELETE FROM helios_params_tb WHERE worker_class = ? AND host = ? AND param = ?", undef, 
-					$worker->getJobType(), $worker->getHostname, 'HALT');
-	} otherwise {
-		throw Helios::Error::DatabaseError($DBI::errstr);
-	};
-	return 1;	
-}
-
+=head1 OTHER FUNCTIONS
 
 =head2 clean_shutdown()
 
-The clean_shutdown function is called when helios.pl is intentionally shutdown (setting a 
-parameter of HALT with a value of 1 in helios_params_tb).  It removes the PID file created on 
-startup and unregisters the worker daemon from the database.
+The clean_shutdown function is called when helios.pl is intentionally shutdown 
+(setting a HALT parameter in the Helios::Panoptes Ctrl Panel or sending the 
+helios.pl process a TERM signal).  It removes the PID file created on 
+startup and unregisters the service instance from the collective database.
 
 =cut 
 
@@ -815,12 +952,12 @@ sub clean_shutdown {
 
 The register() function records information about the currently running worker daemon in the 
 database.  The register() function is designed to be run every $REGISTRATION_INTERVAL seconds.  
-That way, if a worker daemon dies off unexpectedly (without calling unregister()), it can be 
+That way, if a service daemon dies off unexpectedly (without calling unregister()), it can be 
 determined that something has happened to the daemon and it possibly needs to be restarted.
 
 (In reality, register() and unregister() are only necessary to provide a display for Panoptes, 
-to more easily assess system status and facilitate the HALTing of worker daemons or HOLDing of 
-jobs.)
+to more easily assess system status and facilitate the HALTing of service daemons or HOLDing of 
+job processing.)
 
 =cut
 
@@ -841,7 +978,7 @@ sub register {
 =head2 unregister()
 
 The unregister() function removes any record of the currently running daemon from the database.  
-It should be called whenever there is a clean shutdown.
+It is called whenever there is a clean shutdown.
 
 =cut
 
@@ -858,17 +995,66 @@ sub unregister {
 }
 
 
+=head2 set_halt()
+
+Set a HALT parameter for the currently loaded service on the current host to 
+signal to all of the worker processes that they need to exit.  This function is 
+used by the terminator() function to safely signal to workers they need to exit
+when the current job is completed.
+
+=cut
+
+sub set_halt {
+	try {
+		if ($DEBUG_MODE) { 
+			print "Attempting to set HALT for ",$worker->getJobType()," on ",$worker->getHostname(),"\n"; 
+		}
+		my $dbh = $worker->dbConnect();
+		$dbh->do("INSERT INTO helios_params_tb (worker_class, host, param, value) VALUES (?,?,?,?)", undef, 
+					$worker->getJobType(), $worker->getHostname, 'HALT', '1');
+	} otherwise {
+		throw Helios::Error::DatabaseError($DBI::errstr);
+	};
+	return 1;	
+}
+
+
+=head2 clear_halt()
+
+If the --clear-halt option is specified on the command line, clear_halt() is called to attempt to 
+clear the HALT parameter in the HELIOS_PARAMS_TB.  For safety reasons, it only clears a HALT for 
+the loaded service class AND the specific host helios.pl is running on; it will not clear a global
+HALT parameter (where the host is specified as '*').
+
+=cut
+
+sub clear_halt {
+	try {
+		if ($DEBUG_MODE) { 
+			print "Attempting to delete HALT for ",$worker->getJobType()," on ",$worker->getHostname(),"\n"; 
+		}
+		my $dbh = $worker->dbConnect();
+		$dbh->do("DELETE FROM helios_params_tb WHERE worker_class = ? AND host = ? AND param = ?", undef, 
+					$worker->getJobType(), $worker->getHostname, 'HALT');
+	} otherwise {
+		throw Helios::Error::DatabaseError($DBI::errstr);
+	};
+	return 1;	
+}
+
+
+
 =head1 SEE ALSO
 
 L<Helios>, L<Helios::Service>
 
 =head1 AUTHOR
 
-Andrew Johnson, E<lt>ajohnson@ittoolbox.comE<gt>
+Andrew Johnson, E<lt>lajandy at cpan dotorgE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2007-8 by CEB Toolbox, Inc.
+Copyright (C) 2007-9 by CEB Toolbox, Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.0 or,

@@ -2,7 +2,7 @@ package Helios;
 
 use 5.008000;
 
-our $VERSION = '2.00';
+our $VERSION = '2.22';
 
 
 =head1 NAME
@@ -34,11 +34,11 @@ L<helios.pl>, L<Helios::Service>, L<Helios::Error>
 
 =head1 AUTHOR
 
-Andrew Johnson, E<lt>ajohnson at ittoolbox dotcomE<gt>
+Andrew Johnson, E<lt>lajandy at cpan dotorgE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2008 by CEB Toolbox, Inc.
+Copyright (C) 2008-9 by CEB Toolbox, Inc.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.0 or,

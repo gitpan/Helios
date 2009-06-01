@@ -20,16 +20,16 @@ helios_job_submit.pl - Submit a job to the Helios job processing system from the
 
 helios_job_submit.pl [--no-validate] I<jobclass> [I<jobargs>]
 
-helios_job_submit.pl Index::IndexWorker "<params><id>699</id></params>"
+helios_job_submit.pl IndexService "<job>params><id>699</id></params></job>"
 
 helios_job_submit.pl --help
 
 =head1 DESCRIPTION
 
 Use helios_job_submit.pl to submit a job to the Helios job processing system from the cmd line.  
-The first parameter is the job class, and the second is the parameter XML that will be passed to 
+The first parameter is the service class, and the second is the parameter XML that will be passed to 
 the worker class for the job.  If the second parameter isn't given, the program will accept input 
-from STDIN; each line will be considered params for a separate job.
+from STDIN; each line will be considered arguments for a separate job.
 
 =cut
 
@@ -92,8 +92,9 @@ if ($DEBUG_MODE) {
 
 =head2 validateParamsXML($xml)
 
-Given a wodge of parameter XML (wrapped by <params></params> tags), validateParamsXML returns 
-a true value if the XML is valid, and a false value if it isn't.
+Given a wodge of parameter XML (wrapped by <job><params></params></job> tags), 
+validateParamsXML returns a true value if the XML is valid, and a false value 
+if it isn't.
 
 =cut
 
@@ -116,11 +117,11 @@ L<Helios>, L<helios.pl>, L<Helios::Service>, L<Helios::Job>
 
 =head1 AUTHOR
 
-Andrew Johnson, E<lt>ajohnson@ittoolbox.comE<gt>
+Andrew Johnson, E<lt>lajandy at cpan dotorgE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2007-8 by CEB Toolbox, Inc.
+Copyright (C) 2008-9 by CEB Toolbox, Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.0 or,
