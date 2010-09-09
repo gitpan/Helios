@@ -14,7 +14,7 @@ $XML::Simple::PREFERRED_PARSER = 'XML::Parser';
 use Helios::Error;
 use Helios::JobHistory;
 
-our $VERSION = '2.00';
+our $VERSION = '2.221_363';
 
 our $D_OD_RETRIES = 3;
 our $D_OD_RETRY_INTERVAL = 5;
@@ -90,6 +90,7 @@ sub new {
 	# init fields
 	if ( defined($_[0]) && ref($_[0]) && $_[0]->isa('TheSchwartz::Job') ) {
 		$self->job($_[0]);
+		$self->setArgXML( $_[0]->arg()->[0] );
 	} else {
 		my $schwartz_job = TheSchwartz::Job->new(@_);
 		$self->job($schwartz_job);

@@ -1,27 +1,35 @@
 --- #YAML:1.0
-name:                Helios
-version:             2.22
-abstract:            A framework for developing asynchronous distributed job processing applications.
-license:             perl
-generated_by:        ExtUtils::MakeMaker version 6.36
-distribution_type:   module
-requires:     
-    Bundle::LWP:                   
-    Config::IniFiles:              2.38
-    Data::ObjectDriver:            0.04
-    DBD::mysql:                    3
-    DBI:                           1.6
-    Error:                         0.17
-    Pod::Usage:                    
-    Sys::Hostname:                 1
-    Test::Simple:                  0.72
-    TheSchwartz:                   1.04
-    XML::NamespaceSupport:         1.04
-    XML::Parser:                   
-    XML::SAX:                      
-    XML::Simple:                   2.18
-meta-spec:
-    url:     http://module-build.sourceforge.net/META-spec-v1.2.html
-    version: 1.2
+name:               Helios
+version:            2.221_363
+abstract:           A framework for developing asynchronous distributed job processing applications.
 author:
     - Andrew Johnson <lajandy at cpan dotorg>
+license:            perl
+distribution_type:  module
+configure_requires:
+    ExtUtils::MakeMaker:  0
+build_requires:
+    ExtUtils::MakeMaker:  0
+requires:
+    Bundle::LWP:          
+    Config::IniFiles:     2.38
+    Data::ObjectDriver:   0.04
+    DBD::mysql:           3
+    DBI:                  1.6
+    Error:                0.17
+    Pod::Usage:           
+    Sys::Hostname:        1
+    Test::Simple:         0.72
+    TheSchwartz:          1.04
+    XML::NamespaceSupport:  1.04
+    XML::Parser:          
+    XML::SAX:             
+    XML::Simple:          2.18
+no_index:
+    directory:
+        - t
+        - inc
+generated_by:       ExtUtils::MakeMaker version 6.55_02
+meta-spec:
+    url:      http://module-build.sourceforge.net/META-spec-v1.4.html
+    version:  1.4

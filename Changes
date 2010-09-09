@@ -1,5 +1,8 @@
 Revision history for Perl extension Helios.
 
+2.221_363 
+	-Helios::Job: fixed bug where getArgXML() returned undef if job
+	 object was vivified from job queue
 2.22  Thu May 21 11:30:00 2009
 	-Helios::Service: fixed a bug in getFuncidFromDb() that caused 
 	 services to fail to load properly if there was no entry for them 
