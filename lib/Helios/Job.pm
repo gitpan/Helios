@@ -14,7 +14,7 @@ $XML::Simple::PREFERRED_PARSER = 'XML::Parser';
 use Helios::Error;
 use Helios::JobHistory;
 
-our $VERSION = '2.221_363';
+our $VERSION = '2.23';
 
 our $D_OD_RETRIES = 3;
 our $D_OD_RETRY_INTERVAL = 5;

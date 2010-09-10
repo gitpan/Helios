@@ -1,6 +1,6 @@
 Revision history for Perl extension Helios.
 
-2.221_363 
+2.23  Fri Sep 10 12:22:00 2010
 	-Helios::Job: fixed bug where getArgXML() returned undef if job
 	 object was vivified from job queue
 2.22  Thu May 21 11:30:00 2009
