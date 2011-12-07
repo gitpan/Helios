@@ -1,5 +1,15 @@
 Revision history for Perl extension Helios.
 
+2.30_4931  Wed Dec 7 00:52:00 2011
+	-Switch to "Linux-style" versioning: 
+	 odd minor version == development version
+	 even minor version == stable version
+	 second minor number == patch level
+	 (we're still also using Perl-style _ for devel versions too)
+	-Merged in HeliosX::ExtLoggerService functionality 
+	 (long overdue but not tested yet!)
+	-Removed Helios::Service->parseArgXML() (deprecated since 2.00)
+	-Removed Helios::Worker (deprecated since 2.00)
 2.23  Fri Sep 10 12:22:00 2010
 	-Helios::Job: fixed bug where getArgXML() returned undef if job
 	 object was vivified from job queue

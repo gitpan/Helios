@@ -21,11 +21,14 @@ use Helios::ConfigParam;
 use Helios::LogEntry;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.22';
+our $VERSION = '2.30_4931';
 
 our $CACHED_CONFIG;
 our $CACHED_CONFIG_RETRIEVAL_COUNT = 0;
 our $WORKER_START_TIME = 0;
+
+our %INIT_LOG_CLASSES;	# for the logging system
+
 
 =head1 NAME
 
@@ -631,10 +634,14 @@ sub dbConnect {
 }
 
 
-=head2 logMsg([$job,] [$priority,] $msg)
+=head2 logMsg([$job,] [$priority_level,] $message)
 
-Record a message in the Helios log.  In addition to the log message, there are 
-two optional parameters:
+Given a message to log, an optional priority level, and an optional Helios::Job
+object, logMsg() will record the message in the logging systems that have been 
+configured.  The internal Helios logging system is the only system enabled by 
+default.
+
+In addition to the log message, there are two optional parameters:
 
 =over 4
 
@@ -666,144 +673,151 @@ used by Helios; LOG_INFO is the default.
 
 =back
 
-As of Helios 2.2, you can specify a logging threshold to better control the 
-logging of your service on-the-fly.  Specifying a 'log_priority_threshold' 
-config parameter in your helios.ini or Ctrl Panel will cause log messages of a 
-lower priority (higher numeric value) will be discarded.  For example, a line 
-in your helios.ini like:
-
- log_priority_threshold=6   
-
-will cause any log messages of priority 7 (LOG_DEBUG) to be discarded.
-
 The host, process id, and service class are automatically recorded with your log 
 message.  If you supplied either a Helios::Job object or a priority level, these
 will also be recorded with your log message.
 
-NOTE: Previous Helios versions also had the ability to log messages to syslogd. 
-This functionality has been removed; see L<HeliosX::ExtLoggerService> and 
-L<HeliosX::Logger::Syslog> if you require this functionality.
+This method returns a true value if successful and throws an exception if errors occur.   
+
+=head3 LOGGING SYSTEM CONFIGURATION
+
+Several parameters are available to configure Helios logging.  Though these 
+options can be set either in helios.ini or in the Ctrl Panel, it is B<strongly>
+recommended these options only be set in helios.ini.  Changing logging 
+configurations on-the-fly could potentially cause a Helios service (and 
+possibly your whole collective) to become unstable!
+
+The following options can be set in either a [global] section or in an 
+application section of your helios.ini file.
+
+=head4 loggers
+
+ loggers=HeliosX::Logger::Syslog,HeliosX::Logger::Log4perl
+
+A comma delimited list of interface classes to external logging systems.  Each 
+of these classes should implement (or otherwise extend) the Helios::Logger 
+class.  Each class will most likely have its own configuration parameters to 
+set; consult the documentation for the interface class you're trying to 
+configure.
+
+=head4 internal_logger 
+
+ internal_logger=on|off 
+
+Whether to enable the internal Helios logging system as well as the loggers 
+specified with the 'loggers=' line above.  The default is on.  If set to off, 
+the only logging your service will do will be to the external logging systems.
+
+=head4 log_priority_threshold
+
+ log_priority_threshold=1|2|3|4|5|6   
+
+You can specify a logging threshold to better control the 
+logging of your service on-the-fly.  Unlike the above parameters, 
+log_priority_threshold can be safely specified in your Helios Ctrl Panel.  
+Specifying a 'log_priority_threshold' config parameter in your helios.ini or 
+Ctrl Panel will cause log messages of a lower priority (higher numeric value) 
+to be discarded.  For example, a line in your helios.ini like:
+
+ log_priority_threshold=6
+
+will cause any log messages of priority 7 (LOG_DEBUG) to be discarded.
+
+=head3 COPYRIGHT AND LICENSE
+
+The logMsg() method is Copyright (C) 2009 by Andrew Johnson
+
+This method is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.0 or,
+at your option, any later version of Perl 5 you may have available.
+
+=head3 WARRANTY
+
+This software comes with no warranty of any kind.
 
 =cut
 
 sub logMsg {
 	my $self = shift;
-	my $priority;
-	my $msg;
+	my @args = @_;
 	my $job;
+	my $level;
+	my $msg;
+	my @loggers;
 
-	# if the first parameter is a Helios::Job object, log extra info
-	if ( ref($_[0]) && $_[0]->isa('Helios::Job') ) {
-		$job = shift;
+	# were we called with 3 params?  ($job, $level, $msg)
+	# 2 params?                      ($level, $msg) or ($job, $msg)
+	# or just 1?                     ($msg)
+
+	# is the first arg is a Helios::Job object?
+	if ( ref($args[0]) && $args[0]->isa('Helios::Job') ) {
+		$job = shift @args;
 	}
 
-	# if we were given 2 params, the first is priority, second message
-	# if only one, it is the message, default to LOG_INFO priority
-	if ( defined($_[0]) && defined($_[1]) ) {
-		$priority = shift;
-		$msg = shift;
+	# if there are 2 params remaining, the first is level, second msg
+	# if only one, it's just the message 
+	if ( defined($args[0]) && defined($args[1]) ) {
+		$level = $args[0];
+		$msg = $args[1];
 	} else {
-		$priority = LOG_INFO;
-		$msg = shift;
+		$level = LOG_INFO;	# default the level to LOG_INFO
+		$msg = $args[0];
 	}
 	
-	my $params = $self->getConfig();
+	my $config = $self->getConfig();
 	my $jobType = $self->getJobType();
 	my $hostname = $self->getHostname();
 
-    # if this log message's priority is lower than log_priority_threshold,
-    # don't bother logging the message
-    if ( defined($params->{log_priority_threshold}) &&
-        $priority > $params->{log_priority_threshold} ) {
-        return 1;
+    # grab the names of all the configured loggers to try
+    @loggers = split(/,/, $config->{loggers});
+
+    # inject the internal logger automatically
+    # UNLESS it has been specifically turned off
+    unless ( defined($config->{internal_logger}) && 
+        ( $config->{internal_logger} eq 'off' || $config->{internal_logger} eq '0') ) {
+    	push(@loggers, 'Helios::Logger::Internal');
     }
 
-    # Sys::Syslog support
-	# log the message to syslog IF log_facility was set
-	#[]? removed in favor of HeliosX::Logger::Syslog
-=disable
-	if ( defined($params->{syslog_facility}) ) {
-        unless ( 'Sys::Syslog'->can('openlog') ) {
-            eval "require Sys::Syslog";
-            throw Helios::Error::Fatal("Unable to load Sys::Syslog: ".$@) if $@;
-        }		
-		openlog($jobType, $params->{syslog_options}, $params->{syslog_facility});
-		syslog($priority, $msg);
-		closelog();
-	}
-=cut
-
-	# log to database
-	my $retries = 0;
-	my $retry_limit = 3;
-	RETRY: {
-		try{
-			my $driver = $self->getDriver();
-			my $log_entry;
-			if ( defined($job) ) {
-				$log_entry = Helios::LogEntry->new(
-					log_time   => time(),
-					host       => $self->getHostname,
-					process_id => $$,
-					jobid      => $job->getJobid,
-					funcid     => $job->getFuncid,
-					job_class  => $jobType,
-					priority   => $priority,
-					message    => $msg
-				);
-			} else {
-				$log_entry = Helios::LogEntry->new(
-					log_time   => time(),
-					host       => $self->getHostname,
-					process_id => $$,
-					jobid      => undef,
-					funcid     => undef,
-					job_class  => $jobType,
-					priority   => $priority,
-					message    => $msg
-				);
+	# if no loggers configured, this whole section will be skipped
+	foreach my $logger (@loggers) {
+		# init the logger if it hasn't been initialized yet
+		unless ( defined($INIT_LOG_CLASSES{$logger}) ) {
+			# attempt to init the class
+			unless ( $logger->can('init') ) {
+		        eval "require $logger";
+		        throw Helios::Error::LoggingError($@) if $@;
 			}
-			$driver->insert($log_entry);		
-
+			$logger->setConfig($config);
+			$logger->setJobType($jobType);
+			$logger->setHostname($hostname);
+            try {
+    			$logger->init();
+            } otherwise {
+            	# our only resort is to use the internal logger
+            	my $e = shift;
+            	print $e->text(),"\n"; #[]
+                Helios::Logger::Internal->setConfig($config);
+                Helios::Logger::Internal->setJobType($jobType);
+                Helios::Logger::Internal->setHostname($hostname);
+                Helios::Logger::Internal->init();
+            	Helios::Logger::Internal->logMsg(undef, LOG_EMERG, $logger.' CONFIGURATION ERROR: '.$e->text());
+            };
+			$INIT_LOG_CLASSES{$logger} = $logger;
+		}
+		try {
+		  $logger->logMsg($job, $level, $msg);
 		} otherwise {
-			my $e = shift;
-			if ($retries > $retry_limit) {
-				throw Helios::Error::DatabaseError($e->text());
-			} else {
-				# we're going to give it another shot
-				$retries++;
-				sleep 10;
-				next RETRY;
-			}
-		};
-	} # retry block end
-	return 1;
-}
-
-
-=head2 parseArgXML($xml) [DEPRECATED]
-
-Given a string of XML, parse it into a mixed hash/arrayref structure.  This uses
-XML::Simple.
-
-This method is DEPRECATED; its functionality has been moved to 
-Helios::Job->parseArgXML().  You should use the Helios::Service->getJobArgs() 
-instead of this method.
-
-=cut
-
-sub parseArgXML {
-	my $self = shift;
-	my $xml = shift;
-
-	my $xs = XML::Simple->new(SuppressEmpty => undef);
-	my $args;
-	try {
-		$args = $xs->XMLin($xml);
-	} otherwise {
-		throw Helios::Error::InvalidArg($!);
-	};
-	return $args;
+            my $e = shift;
+            print $e->text(),"\n"; #[]
+            Helios::Logger::Internal->setConfig($config);
+            Helios::Logger::Internal->setJobType($jobType);
+            Helios::Logger::Internal->setHostname($hostname);
+            Helios::Logger::Internal->init();
+            Helios::Logger::Internal->logMsg(undef, LOG_EMERG, $logger.' LOGGING FAILURE: '.$e->text());
+		};			
+	}
+	
+	return 1;	
 }
 
 
@@ -947,13 +961,20 @@ L<TheSchwartz>, L<XML::Simple>, L<Config::IniFiles>, L<Sys::Syslog>
 
 =head1 AUTHOR
 
-Andrew Johnson, E<lt>lajandy at cpan dotorgE<gt>
+Andrew Johnson, E<lt>lajandy at cpan dot orgE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2008-9 by CEB Toolbox, Inc.
+Copyright (C) 2008-9 by CEB Toolbox, Inc., except as noted.
 
 This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.0 or,
+at your option, any later version of Perl 5 you may have available.
+
+
+The logMsg() method is Copyright (C) 2009 by Andrew Johnson.
+
+The logMsg() method is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.0 or,
 at your option, any later version of Perl 5 you may have available.
 
