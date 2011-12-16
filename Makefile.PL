@@ -11,15 +11,12 @@ WriteMakefile(
     VERSION_FROM      => 'lib/Helios.pm', # finds $VERSION
     PREREQ_PM         => {   Test::Simple           => 0.72,
                              Data::ObjectDriver     => 0.04,
-                             DBI                    => 1.60,
+                             DBI                    => 1.52,
                              TheSchwartz            => 1.04,
                              Config::IniFiles       => 2.38,
                              DBD::mysql             => 3.0,
                              Error                  => 0.17,
-                             XML::Parser            => '',
-                             XML::NamespaceSupport  => 1.04,
-                             XML::SAX               => '',
-                             XML::Simple            => 2.18,
+                             XML::Simple            => 2.14,
                              Sys::Hostname          => 1.00,
                              Bundle::LWP            => '',
                              Pod::Usage             => ''

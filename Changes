@@ -1,6 +1,23 @@
 Revision history for Perl extension Helios.
 
-2.30_4931  Wed Dec 7 00:52:00 2011
+2.30_5041  Thu Dec 15 23:40:00 2011
+	-Completely rewrote submitJob.pl to allow requester to send job 
+	 arg XML in an HTTP POST; the form encoding is no longer 
+	 necessary (though is still supported to ensure compatibility)
+	 See submitJob.pl for updated job XML syntax
+	 New submitJob.pl also eliminates dependency on HELIOS_CLASS_MAP 
+	 to determine the proper class for a particular job type (though 
+	 HELIOS_CLASS_MAP is still supported)
+	-Removed vestigial dependency on XML::Parser in Helios::Job &
+	 removed mention of it in Makefile.PL
+	-Corrected Makefile.PL to remove mention of XML::SAX, 
+	 XML::Namespace as dependencies (Helios's only direct XML::*
+	 dependency is XML::Simple)
+	-Corrected Makefile.PL with older versions of DBI and XML::Simple.
+	 These versions were packaged as RPMs with CentOS 5.7.  This 
+	 change helps installation on RPM-based Linux OSes, and Helios is 
+	 compatible with these versions.
+2.30_4931  Wed Dec 07 00:52:00 2011
 	-Switch to "Linux-style" versioning: 
 	 odd minor version == development version
 	 even minor version == stable version

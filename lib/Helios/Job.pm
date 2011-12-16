@@ -9,12 +9,11 @@ use Error qw(:try);
 use TheSchwartz;
 use TheSchwartz::Job;
 require XML::Simple;
-$XML::Simple::PREFERRED_PARSER = 'XML::Parser';
 
 use Helios::Error;
 use Helios::JobHistory;
 
-our $VERSION = '2.23';
+our $VERSION = '2.23_5041';
 
 our $D_OD_RETRIES = 3;
 our $D_OD_RETRY_INTERVAL = 5;
