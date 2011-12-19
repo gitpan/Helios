@@ -1,5 +1,13 @@
 Revision history for Perl extension Helios.
 
+2.30_5071  Sun Dec 18 02:30:00 2011
+	-Added Helios::Error::BaseError and modified all Helios::Error::
+	 exception classes to subclass it instead of Error::Simple 
+	 directly.  This creates an actual exception class hierarchy, 
+	 and makes it easy to determine whether a caught exception is a 
+	 Helios error or another kind of error.  (It might also allow 
+	 an eventual move from Error to another exception handling 
+	 system.)
 2.30_5041  Thu Dec 15 23:40:00 2011
 	-Completely rewrote submitJob.pl to allow requester to send job 
 	 arg XML in an HTTP POST; the form encoding is no longer 

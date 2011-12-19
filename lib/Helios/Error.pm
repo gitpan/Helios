@@ -1,13 +1,16 @@
 package Helios::Error;
 
+use Helios::Error::BaseError;
+
 use Helios::Error::Warning;
 use Helios::Error::Fatal;
 use Helios::Error::FatalNoRetry;
 
 use Helios::Error::DatabaseError;
 use Helios::Error::InvalidArg;
+use Helios::Error::LoggingError;
 
-our $VERSION = '1.20';
+our $VERSION = '2.30_5071';
 
 1;
 
@@ -25,11 +28,13 @@ Helios::Error - a convenience class to import all Helios::Error exception classe
 
 Use the above single line in your code instead of:
 
+	use Helios::Error::BaseError;
 	use Helios::Error::Warning;
 	use Helios::Error::Fatal;
 	use Helios::Error::FatalNoRetry;
 	use Helios::Error::DatabaseError;
 	use Helios::Error::InvalidArg;
+	use Helios::Error::LoggingError;
 
 That way all the base Helios exceptions can be loaded by one line.
 

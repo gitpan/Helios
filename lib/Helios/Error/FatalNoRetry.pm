@@ -1,16 +1,16 @@
 package Helios::Error::FatalNoRetry;
 
-use base qw(Error::Simple);
+use base qw(Helios::Error::BaseError);
 
-our $VERSION = '1.20';
+our $VERSION = '2.30_5071';
 
 1;
 __END__;
 
 =head1 NAME
 
-Helios::Error::FatalNoRetry - fatal exception class for Helios job processing system; implies 
-a job failed and the error was so serious the job should not be reattempted.
+Helios::Error::FatalNoRetry - fatal exception class for Helios indicating a 
+job failed and the error was so serious the job should not be reattempted.
 
 =head1 SYNOPSIS
 

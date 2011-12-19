@@ -1,16 +1,16 @@
 package Helios::Logger::LoggingError;
 
-use base qw(Error::Simple);
+use base qw(Helios::Error::BaseError);
 
-our $VERSION = '2.30_4931';
+our $VERSION = '2.30_5071';
 
 1;
 __END__;
 
 =head1 NAME
 
-Helios::Error::LoggingError - exception class for Helios job processing system to denote a 
-logging subsystem error occurred
+Helios::Error::LoggingError - exception class for Helios indicating a logging 
+subsystem error occurred
 
 =head1 SYNOPSIS
 

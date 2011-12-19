@@ -1,15 +1,15 @@
 package Helios::Error::DatabaseError;
 
-use base qw(Error::Simple);
+use base qw(Helios::Error::BaseError);
 
-our $VERSION = '1.20';
+our $VERSION = '2.30_5071';
 
 1;
 __END__;
 
 =head1 NAME
 
-Helios::Error::DatabaseError - exception class for Helios job processing system to denote a 
+Helios::Error::DatabaseError - exception class for Helios indicating a  
 database error occurred
 
 =head1 SYNOPSIS
@@ -28,7 +28,8 @@ intermittent network error, database error, sunspots, whatever).
 
 =head1 SEE ALSO
 
-L<Helios::Error::FatalNoRetry>, L<Helios::Error::Warning>, L<Error>, L<Error::Simple>
+L<Helios::Error::FatalNoRetry>, L<Helios::Error::Warning>, 
+L<Helios::Error::BaseError>, L<Error> 
 
 =head1 AUTHOR
 

@@ -1,16 +1,16 @@
 package Helios::Error::Fatal;
 
-use base qw(Error::Simple);
+use base qw(Helios::Error::BaseError);
 
-our $VERSION = '1.20';
+our $VERSION = '2.30_5071';
 
 1;
 __END__;
 
 =head1 NAME
 
-Helios::Error::Fatal - fatal exception class for Helios job processing system; implies 
-a job failed but can be re-attempted
+Helios::Error::Fatal - fatal exception class for Helios indicating a job failed
+ but can be re-attempted
 
 =head1 SYNOPSIS
 
@@ -51,7 +51,8 @@ error is severe enough to prevent the system from re-attempting the job later.
 
 =head1 SEE ALSO
 
-L<Helios::Error::FatalNoRetry>, L<Helios::Error::Warning>, L<Error>, L<Error::Simple>
+L<Helios::Error::FatalNoRetry>, L<Helios::Error::Warning>, 
+L<Helios::Error::BaseError>, L<Error>, L<Error::Simple>
 
 =head1 AUTHOR
 

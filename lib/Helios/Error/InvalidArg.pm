@@ -1,16 +1,16 @@
 package Helios::Error::InvalidArg;
 
-use base qw(Error::Simple);
+use base qw(Helios::Error::BaseError);
 
-our $VERSION = '1.20';
+our $VERSION = '2.30_5071';
 
 1;
 __END__;
 
 =head1 NAME
 
-Helios::Error::InvalidArg - exception class for Helios job processing system to denote job args 
-that are invalid
+Helios::Error::InvalidArg - exception class for Helios indicating a job's 
+args are invalid
 
 =head1 SYNOPSIS
 
