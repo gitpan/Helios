@@ -1,5 +1,8 @@
 Revision history for Perl extension Helios.
 
+2.30_5072  Wed Dec 20 21:33:00 2011
+	-Same as 5071, but with including BaseError and fixed MANIFEST 
+	 (oops, sorry!)
 2.30_5071  Sun Dec 18 02:30:00 2011
 	-Added Helios::Error::BaseError and modified all Helios::Error::
 	 exception classes to subclass it instead of Error::Simple 
