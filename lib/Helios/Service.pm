@@ -13,7 +13,6 @@ use Error qw(:try);
 use TheSchwartz;
 use TheSchwartz::Job;
 require XML::Simple;
-$XML::Simple::PREFERRED_PARSER = 'XML::Parser';
 
 use Helios::Error;
 use Helios::Job;
@@ -21,7 +20,7 @@ use Helios::ConfigParam;
 use Helios::LogEntry;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.30_4931';
+our $VERSION = '2.30_5232';
 
 our $CACHED_CONFIG;
 our $CACHED_CONFIG_RETRIEVAL_COUNT = 0;
@@ -89,6 +88,12 @@ OVERDRIVE mode, the worker process will stay running, and work() will be called 
 another job.  If the run() method returned a nonzero value or the shouldExitOverdrive() returns a 
 true value, the worker process will exit.  If OVERDRIVE mode is disabled, the process will also exit.
 
+=head3 COPYRIGHT
+
+Portions of this software method, where noted, are 
+Copyright (C) 2011 by Andrew Johnson.  See the COPYRIGHT AND LICENSE section 
+elsewhere in this document for specific terms.
+
 =cut
 
 sub max_retries { return MaxRetries(); }
@@ -111,10 +116,10 @@ sub work {
         # AND we're not servicing the 10th job (or technically a multiple of ten)
         # THEN just retrieve the pre-existing config
         
-        #[]
-        print "CACHED_CONFIG=",$CACHED_CONFIG,"\n";
-        print "CACHED_CONFIG_RETRIEVAL_COUNT=",$CACHED_CONFIG_RETRIEVAL_COUNT,"\n";
-        
+        if ($self->debug) {
+	        print "CACHED_CONFIG=",$CACHED_CONFIG,"\n";
+	        print "CACHED_CONFIG_RETRIEVAL_COUNT=",$CACHED_CONFIG_RETRIEVAL_COUNT,"\n";
+        }
         if ( defined($CACHED_CONFIG) && 
                 $CACHED_CONFIG->{LAZY_CONFIG_UPDATE} == 1 &&
                 $CACHED_CONFIG->{OVERDRIVE} == 1 &&
@@ -152,24 +157,23 @@ sub work {
 		exit(1);
 	};
 
-	# if this is a meta job, we need to burst it apart 
-	# if it isn't, we should call the service's run() method 
+	# run the job, whether it's a metajob or simple job
 	$self->setJob($job);
-	if ( defined($args->{metajob}) && $args->{metajob} == 1 ) {
-		$self->logMsg($job, LOG_NOTICE, 'Job '.$job->getJobid.' is a metajob.  Bursting...');
-		try {
-			my $numberOfJobs = $self->burstJob($job);
-			$self->logMsg($job, LOG_NOTICE, 'Job '.$job->getJobid.' burst into '.$numberOfJobs.' jobs');
-		} otherwise {
-			my $e = shift;
-			$self->logMsg($job, LOG_ERR, 'Job '.$job->getJobid.' burst failure: '.$e->text);
-		};
+# BEGIN CODE Copyright (C) 2011 by Andrew Johnson.
+	if ( $job->isaMetaJob() ) {
+		# metajob
+		if ($self->debug) { print 'CALLING RUNMETAJOB() for metajob '.$job->getJobid()."...\n"; }
+		$return_code = $self->runMetajob($job);
+		if ($self->debug) { print 'RUNMETAJOB() RETURN CODE: '.$return_code."\n"; }
 	} else {
-		if ($self->debug) { print "RUNNING JOB\n"; }
+		# must be a simple job then
+		if ($self->debug) { print 'CALLING RUN() for job '. $job->getJobid()."...\n"; }
 		$return_code = $self->run($job);
-		if ($self->debug) { print "RUN RETURN CODE: ", $return_code,"\n"; }
+		if ($self->debug) { print 'RUN() RETURN CODE: '. $return_code."\n"; }
 	}
-
+# END CODE Copyright (C) 2011 by Andrew Johnson.
+	
+	
 	# either run() or burstJob() should have marked the job as completed or failed
 	# now we have to decide whether to exit or not
 
@@ -185,6 +189,73 @@ sub work {
 		$self->logMsg(LOG_NOTICE,"Class $class exited (downshift)");
 		exit(0);
 	}
+}
+
+
+=head2 runMetajob($job)
+
+Given a metajob, the runMetajob() method runs the job, returning 0 if the 
+metajob was successful and nonzero otherwise.
+
+This is the default runMetajob() for Helios.  In the default Helios system, 
+metajobs consist of multiple simple jobs.  These jobs are defined in the 
+metajob's argument XML at job submission time.  The runMetajob() method will 
+burst the metajob apart into its constituent jobs, which are then run by 
+another service.  
+
+Metajobs' primary use in the base Helios system is to speed the job submission 
+process of large job batches.  One metajob containing a batch of thousands of 
+jobs can be submitted and burst apart by the system much faster than thousands 
+of individual jobs can be submitted.  In addition, the faster jobs enter the 
+job queue, the faster Helios workers can be launched to handle them.  If you 
+have thousands (or tens of thousands, or more) of jobs to run, especially if 
+you are running your service in OVERDRIVE mode, you should use metajobs to 
+greatly increase system throughput.
+
+=head3 COPYRIGHT
+
+This method is Copyright (C) 2011 by Andrew Johnson.
+
+See the COPYRIGHT AND LICENSE section elsewhere in this document for specific
+copyright and license terms.
+
+=cut
+
+sub runMetajob {
+	my $self = shift;
+	my $metajob = shift;
+	my $config = $self->getConfig();
+	my $args = $metajob->getArgs();
+	my $r;
+	
+	eval {
+		$self->logMsg($metajob, LOG_NOTICE, 'Bursting metajob '.$metajob->getJobid);
+		my $jobCount = $self->burstJob($metajob);
+		$self->logMsg($metajob, LOG_NOTICE, 'Metajob '.$metajob->getJobid().' burst into '.$jobCount.' jobs.');
+		$r = 0;
+		1;
+	} or do {
+		my $E = $@;
+		if ($E->isa('Helios::Error::BaseError')) {
+			$self->logMsg($metajob, 
+					LOG_ERR, 
+					'Metajob burst failure for metajob '
+					.$metajob->getJobid().': '
+					.substr($E->text(),0,3900)
+			);
+			$r = 1;			
+		} else {
+			$self->logMsg($metajob, 
+					LOG_ERR, 
+					'Metajob burst failure for metajob '
+					.$metajob->getJobid().': '
+					.substr($E,0,3900)
+			);
+			$r = 1;			
+		}
+	};
+	
+	return $r;
 }
 
 
@@ -769,8 +840,10 @@ sub logMsg {
 	my $hostname = $self->getHostname();
 
     # grab the names of all the configured loggers to try
-    @loggers = split(/,/, $config->{loggers});
-
+    if ( defined($config->{loggers}) ) {
+	    @loggers = split(/,/, $config->{loggers});
+    }
+    
     # inject the internal logger automatically
     # UNLESS it has been specifically turned off
     unless ( defined($config->{internal_logger}) && 
@@ -907,7 +980,7 @@ sub burstJob {
 These are the basic methods that define your Helios service.  The run() method 
 is the only one required. 
 
-=head2 run()
+=head2 run($job)
 
 This is a default run method for class completeness.  You have to override it 
 in your own Helios service class. 
@@ -967,14 +1040,13 @@ Andrew Johnson, E<lt>lajandy at cpan dot orgE<gt>
 
 Copyright (C) 2008-9 by CEB Toolbox, Inc., except as noted.
 
+Portions of this software, where noted, are 
+Copyright (C) 2009 by Andrew Johnson.
+
+Portions of this software, where noted, are
+Copyright (C) 2011 by Andrew Johnson.
+
 This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.0 or,
-at your option, any later version of Perl 5 you may have available.
-
-
-The logMsg() method is Copyright (C) 2009 by Andrew Johnson.
-
-The logMsg() method is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.0 or,
 at your option, any later version of Perl 5 you may have available.
 

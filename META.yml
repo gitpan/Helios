@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Helios
-version:            2.30_5072
+version:            2.30_5232
 abstract:           A framework for developing asynchronous distributed job processing applications.
 author:
     - Andrew Johnson <lajandy at cpan dotorg>

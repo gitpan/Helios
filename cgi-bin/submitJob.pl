@@ -37,7 +37,7 @@ Example of submitting a Helios job by POSTing an XML stream:
  use warnings;
  use LWP::UserAgent;
  use HTTP::Request::Common;
- my $userAgent = LWP::UserAgent->new();
+ my $ua = LWP::UserAgent->new();
  my $jobXML = <<ENDXML;
  <?xml version="1.0" encoding="UTF-8"?>
  <job type="Helios::TestService">
@@ -48,7 +48,7 @@ Example of submitting a Helios job by POSTing an XML stream:
  </job>
  ENDXML
 
- my $response = $userAgent->request(POST 'http://localhost/cgi-bin/submitJob.pl',
+ my $r = $ua->request(POST 'http://localhost/cgi-bin/submitJob.pl',
 		Content_Type => 'text/xml',
 		Content => $message
  );

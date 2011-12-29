@@ -1,5 +1,11 @@
 Revision history for Perl extension Helios.
 
+2.30_5232  Wed Dec 28 20:20:00 2011
+	-Added Helios::Service->runMetajob() to update and modularize 
+	 metajob handling code.
+	-Cleaned up some unnecessary warnings from work() and logMsg()
+	-Removed vestigial dependency on XML::Parser in Helios::Service
+	 (forgot that was in there)
 2.30_5072  Wed Dec 20 21:33:00 2011
 	-Same as 5071, but with including BaseError and fixed MANIFEST 
 	 (oops, sorry!)
