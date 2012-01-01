@@ -1,5 +1,24 @@
 Revision history for Perl extension Helios.
 
+2.30_5271  Sun Jan 01 11:44:00 2012
+	-Changed Helios::Service->work() to ignore the value returned by a
+	 service's run() or runMetajob() method by default.  Previous 
+	 Helios versions would understand a nonzero return from run() to 
+	 mean a failed job, and would force the worker process to end even
+	 though the service was in OVERDRIVE mode.  This was considered a 
+	 safety measure as the reason for the job failure was unknown.  
+	 However, this feature was underdocumented and confusing and has 
+	 been removed.  
+	 
+	 The new default behavior doesn't pay attention to the value returned
+	 from run() or runMetajob().  You should mark your job as completed or 
+	 failed in run() or runMetajob() and not worry about returning anything.
+	 This new behavior also has the advantage of working with all of the 
+	 popular modes of Perl exception handling (using Perl's eval {} will return
+	 1 if successful, while Try::Tiny and Error's try {} will not.
+	 	 
+	 Anyone requiring the old behavior can use the new DOWNSHIFT_ON_FAILED_JOB 
+	 parameter to enable it.
 2.30_5232  Wed Dec 28 20:20:00 2011
 	-Added Helios::Service->runMetajob() to update and modularize 
 	 metajob handling code.

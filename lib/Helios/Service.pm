@@ -82,15 +82,15 @@ getConfig() method.  The job's arguments are parsed from XML into a Perl hashref
 available via the job object's getArgs() method.  Then the service object's run() method is 
 called, and is passed the Helios::Job object.
 
-Once the run() method has completed the job and returned, work() determines whether the worker 
-process should exit or stay running.  If the subclass run() method returns a zero and the worker is 
-OVERDRIVE mode, the worker process will stay running, and work() will be called to setup and run 
-another job.  If the run() method returned a nonzero value or the shouldExitOverdrive() returns a 
-true value, the worker process will exit.  If OVERDRIVE mode is disabled, the process will also exit.
+Once the run() method has completed the job and returned, work() determines 
+whether the worker process should exit or stay running.  If OVERDRIVE mode is 
+enabled and the service hasn't been HALTed or told to HOLD, the worker process 
+will stay running, and work() will be called to setup and run another job.  If 
+the service is not in OVERDRIVE mode, the worker process will exit.
 
 =head3 COPYRIGHT
 
-Portions of this software method, where noted, are 
+Portions of this method, where noted, are 
 Copyright (C) 2011 by Andrew Johnson.  See the COPYRIGHT AND LICENSE section 
 elsewhere in this document for specific terms.
 
@@ -171,15 +171,25 @@ sub work {
 		$return_code = $self->run($job);
 		if ($self->debug) { print 'RUN() RETURN CODE: '. $return_code."\n"; }
 	}
-# END CODE Copyright (C) 2011 by Andrew Johnson.
-	
-	
-	# either run() or burstJob() should have marked the job as completed or failed
-	# now we have to decide whether to exit or not
 
-	# if run() returned a nonzero, we're assuming run() ended badly, 
-	# and we need to exit the process to be safe
-	if ($return_code != 0) { exit(1); }
+	# DOWNSHIFT_ON_FAILED_JOB
+	# previously a nonzero return from run() was taken to mean a failed job, 
+	# and would cause a downshift in OVERDRIVE mode.  This was considered a 
+	# safety feature as it was unknown what caused the job to fail.
+	# But this feature was underdocumented and misunderstood and has been 
+	# removed.  
+	# The new default behavior doesn't pay attention to the value returned
+	# from run() or runMetajob().  You should mark your job as completed or 
+	# failed in run() or runMetajob() and not worry about returning anything.
+	# Anyone requiring the old behavior can use the new DOWNSHIFT_ON_FAILED_JOB 
+	# parameter to enable it.
+	if ( defined($self->getConfig()->{DOWNSHIFT_ON_FAILED_JOB}) &&
+			$self->getConfig()->{DOWNSHIFT_ON_FAILED_JOB} == 1 && 
+			$return_code != 0
+		) { 
+		exit(1); 
+	}
+# END CODE Copyright (C) 2011 by Andrew Johnson.
 
 	# if we're not in OVERDRIVE, the worker process will exit as soon as work() returns anyway 
 	#    (calling shouldExitOverdrive will be a noop)
