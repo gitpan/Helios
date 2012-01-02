@@ -13,7 +13,7 @@ require XML::Simple;
 use Helios::Error;
 use Helios::JobHistory;
 
-our $VERSION = '2.23_5041';
+our $VERSION = '2.30_5272';
 
 our $D_OD_RETRIES = 3;
 our $D_OD_RETRY_INTERVAL = 5;
@@ -286,7 +286,7 @@ sub failed {
             }
         };
 	}	
-	$job->failed($error, $exitstatus);
+	$job->failed(substr($error,0,254), $exitstatus);
 	return $exitstatus;
 }
 
@@ -343,7 +343,7 @@ sub failedNoRetry {
         };
 	}
 
-	$job->permanent_failure($error, $exitstatus);
+	$job->permanent_failure(substr($error,0,254), $exitstatus);
 	return $exitstatus;
 }
 
@@ -486,7 +486,7 @@ L<Helios::Service>, L<Helios::Error>, L<TheSchwartz::Job>, L<XML::Simple>, L<Con
 
 =head1 AUTHOR
 
-Andrew Johnson, E<lt>ajohnson@ittoolbox.comE<gt>
+Andrew Johnson, E<lt>lajandy at cpan dotorgE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 

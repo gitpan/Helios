@@ -20,7 +20,7 @@ use Helios::ConfigParam;
 use Helios::LogEntry;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.30_5232';
+our $VERSION = '2.30_5272';
 
 our $CACHED_CONFIG;
 our $CACHED_CONFIG_RETRIEVAL_COUNT = 0;
@@ -91,7 +91,7 @@ the service is not in OVERDRIVE mode, the worker process will exit.
 =head3 COPYRIGHT
 
 Portions of this method, where noted, are 
-Copyright (C) 2011 by Andrew Johnson.  See the COPYRIGHT AND LICENSE section 
+Copyright (C) 2011-2012 by Andrew Johnson.  See the COPYRIGHT AND LICENSE section 
 elsewhere in this document for specific terms.
 
 =cut
@@ -159,32 +159,41 @@ sub work {
 
 	# run the job, whether it's a metajob or simple job
 	$self->setJob($job);
-# BEGIN CODE Copyright (C) 2011 by Andrew Johnson.
-	if ( $job->isaMetaJob() ) {
-		# metajob
-		if ($self->debug) { print 'CALLING RUNMETAJOB() for metajob '.$job->getJobid()."...\n"; }
-		$return_code = $self->runMetajob($job);
-		if ($self->debug) { print 'RUNMETAJOB() RETURN CODE: '.$return_code."\n"; }
-	} else {
-		# must be a simple job then
-		if ($self->debug) { print 'CALLING RUN() for job '. $job->getJobid()."...\n"; }
-		$return_code = $self->run($job);
-		if ($self->debug) { print 'RUN() RETURN CODE: '. $return_code."\n"; }
-	}
+# BEGIN CODE Copyright (C) 2011-2012 by Andrew Johnson.
+	eval {
+		if ( $job->isaMetaJob() ) {
+			# metajob
+			if ($self->debug) { print 'CALLING METARUN() for metajob '.$job->getJobid()."...\n"; }
+			$return_code = $self->metarun($job);
+			if ($self->debug) { print 'METARUN() RETURN CODE: '.$return_code."\n"; }
+		} else {
+			# must be a simple job then
+			if ($self->debug) { print 'CALLING RUN() for job '. $job->getJobid()."...\n"; }
+			$return_code = $self->run($job);
+			if ($self->debug) { print 'RUN() RETURN CODE: '. $return_code."\n"; }
+		}
+		1;
+	} or do {
+		my $E = $@;
+		$self->logMsg($job, LOG_CRIT,"Uncaught exception thrown by run() in process ".$$.': '.$E);
+		$self->logMsg($job, LOG_CRIT,'Forcing failure of job '.$job->getJobid().' and exit of process '.$$);
+		$self->failedJob($job, $E, 1);
+		exit(1);
+	};
 
-	# DOWNSHIFT_ON_FAILED_JOB
+	# DOWNSHIFT_ON_NONZERO_RUN
 	# previously a nonzero return from run() was taken to mean a failed job, 
 	# and would cause a downshift in OVERDRIVE mode.  This was considered a 
 	# safety feature as it was unknown what caused the job to fail.
 	# But this feature was underdocumented and misunderstood and has been 
 	# removed.  
 	# The new default behavior doesn't pay attention to the value returned
-	# from run() or runMetajob().  You should mark your job as completed or 
-	# failed in run() or runMetajob() and not worry about returning anything.
-	# Anyone requiring the old behavior can use the new DOWNSHIFT_ON_FAILED_JOB 
+	# from run() or metarun().  You should mark your job as completed or 
+	# failed in run() or metarun() and not worry about returning anything.
+	# Anyone requiring the old behavior can use the new DOWNSHIFT_ON_NONZERO_RUN
 	# parameter to enable it.
-	if ( defined($self->getConfig()->{DOWNSHIFT_ON_FAILED_JOB}) &&
-			$self->getConfig()->{DOWNSHIFT_ON_FAILED_JOB} == 1 && 
+	if ( defined($self->getConfig()->{DOWNSHIFT_ON_NONZERO_RUN}) &&
+			$self->getConfig()->{DOWNSHIFT_ON_NONZERO_RUN} == 1 && 
 			$return_code != 0
 		) { 
 		exit(1); 
@@ -202,14 +211,14 @@ sub work {
 }
 
 
-=head2 runMetajob($job)
+=head2 metarun($job)
 
-Given a metajob, the runMetajob() method runs the job, returning 0 if the 
+Given a metajob, the metarun() method runs the job, returning 0 if the 
 metajob was successful and nonzero otherwise.
 
-This is the default runMetajob() for Helios.  In the default Helios system, 
+This is the default metarun() for Helios.  In the default Helios system, 
 metajobs consist of multiple simple jobs.  These jobs are defined in the 
-metajob's argument XML at job submission time.  The runMetajob() method will 
+metajob's argument XML at job submission time.  The metarun() method will 
 burst the metajob apart into its constituent jobs, which are then run by 
 another service.  
 
@@ -224,14 +233,14 @@ greatly increase system throughput.
 
 =head3 COPYRIGHT
 
-This method is Copyright (C) 2011 by Andrew Johnson.
+This method is Copyright (C) 2011-2012 by Andrew Johnson.
 
 See the COPYRIGHT AND LICENSE section elsewhere in this document for specific
 copyright and license terms.
 
 =cut
 
-sub runMetajob {
+sub metarun {
 	my $self = shift;
 	my $metajob = shift;
 	my $config = $self->getConfig();
@@ -242,30 +251,25 @@ sub runMetajob {
 		$self->logMsg($metajob, LOG_NOTICE, 'Bursting metajob '.$metajob->getJobid);
 		my $jobCount = $self->burstJob($metajob);
 		$self->logMsg($metajob, LOG_NOTICE, 'Metajob '.$metajob->getJobid().' burst into '.$jobCount.' jobs.');
-		$r = 0;
 		1;
 	} or do {
 		my $E = $@;
-		if ($E->isa('Helios::Error::BaseError')) {
+		if ( $E->isa('Helios::Error::BaseError') ) {
 			$self->logMsg($metajob, 
 					LOG_ERR, 
 					'Metajob burst failure for metajob '
 					.$metajob->getJobid().': '
-					.substr($E->text(),0,3900)
+					.$E->text()
 			);
-			$r = 1;			
 		} else {
 			$self->logMsg($metajob, 
 					LOG_ERR, 
 					'Metajob burst failure for metajob '
 					.$metajob->getJobid().': '
-					.substr($E,0,3900)
+					.$E
 			);
-			$r = 1;			
 		}
 	};
-	
-	return $r;
 }
 
 
@@ -1054,7 +1058,7 @@ Portions of this software, where noted, are
 Copyright (C) 2009 by Andrew Johnson.
 
 Portions of this software, where noted, are
-Copyright (C) 2011 by Andrew Johnson.
+Copyright (C) 2011-2012 by Andrew Johnson.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.0 or,

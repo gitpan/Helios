@@ -1,25 +1,23 @@
 package Helios::TestService;
 
-use 5.008000;
-use base qw( Helios::Service );
+use 5.008;
 use strict;
 use warnings;
+use base qw( Helios::Service );
 
-use Error qw(:try);
-
-use Helios::Error;			# pulls in all Helios::Error::* exception types
-use Helios::Job;
+use Helios::Error;			
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.20';	# necessary for packaging purposes
+our $VERSION = '2.30_5272';	
 
 =head1 NAME
 
-Helios::TestService - Helios::Service subclass for testing purposes
+Helios::TestService - Helios::Service subclass useful for testing
 
 =head1 DESCRIPTION
 
-You can use Helios::TestService to test the functionality of your Helios collective.  
+You can use Helios::TestService to test the functionality of your Helios 
+collective:  
 
 =over 4
 
@@ -33,32 +31,26 @@ at a command prompt.
 
 =item 2.
 
-Submit a job, either from code you're trying to test, or through the Helios::Panoptes Submit Job 
-page.
+Use the helios_job_submit.pl program to submit a Helios::TestService job to the
+Helios collective:
+
+ helios_job_submit.pl Helios::TestService "<job><params><arg1>value1</arg1></params></job>"
 
 =item 3.
 
-Helios should run the test job.  The job arguments will be parsed and logged as entries in the 
-Helios log.  If argument parsing fails, there will be an error in the log instead.
+Helios should run the test job.  Helios::TestService will log a "Hello World" 
+message, then any job arguments will be parsed and logged as entries in the 
+Helios log.  If you are running the service in debug mode, the service's 
+config parameters and job arguments will be printed to the terminal as well.
 
 =back
 
 =head1 METHODS
 
-=head2 max_retries() 
-
-=head2 retry_delay()
-
-These are disabled as we don't normally want to retry test jobs.
-
-=cut
-
-#sub max_retries { return 2; }
-#sub retry_delay { return 60; }
-
 =head2 run()
 
-The run() method just logs the arguments passed to the job.
+The run() method prints a "Hello World!" message to the Helios log and then 
+logs the job arguments.
 
 =cut
 
@@ -66,49 +58,92 @@ sub run {
 	my $self = shift;
 	my $job = shift;
 	my $config = $self->getConfig();
-	my $args = $job->getArgs();
+	my $args = $self->getJobArgs($job);
 
-	try {
-		if ($self->debug) {
-			print "--CONFIG PARAMS--\n";
-			foreach (keys %$config) {
-				print $_,'=',$config->{$_},"\n";
-			}
+	eval {
+
+		# this is just for debugging purposes, you wouldn't print 
+		# to the terminal in a normal Helios service
+		if ($self->debug) { 
+			$self->printConfigParams();
+			$self->printJobArgs(); 
 		}
 
-		if ($self->debug) { print "--JOB ARGUMENTS--\n"; }
+		# Hello World!
+		$self->logMsg($job, 'Helios::TestService says, "Hello World!"');
+
+		# just for fun (and to prove we received the job correctly)
+		# log the job arguments
 		foreach my $arg (sort keys %$args) {
-			if ($self->debug) { print uc($arg),'=',$args->{$arg},"|\n"; }
-			$self->logMsg($job, LOG_DEBUG, "PARAM: $arg VALUE: ".$args->{$arg});
+			$self->logMsg($job,"JOBARG=$arg VALUE=".$args->{$arg});
 		}
-		if ( defined($args->{failure}) ) {
-			throw Helios::Error::Fatal("Artificially throwing error here");
-		}
+
 		# if your job completes successfully, you need to mark it was completed
 		$self->completedJob($job);
-
-	} catch Helios::Error::Warning with {
-		# you can throw this in your "WORK" section to denote your job completed, but had warnings
-		my $e = shift;
-		$self->logMsg($job, LOG_WARNING, "Class $self WARNING: ".$e->text);
-		$self->completedJob($job);
-	} catch Helios::Error::Fatal with {
-		# you can throw this in your "WORK" section to denote a job that failed
-		# (it will be retried if you have defined max_retries() and this job hasn't been retried that many times)
-		my $e = shift;
-		$self->logMsg($job, LOG_ERR, "Class $self FAILED: ".$e->text);
-		$self->failedJob($job, $e->text."(Class $self)",835);
-	} otherwise {
-		# "otherwise" catches unexpected errors that you perhaps didn't throw
-		# usually you can mark the jobs as failed and have them retried
-		my $e = shift;
-		$self->logMsg($job, LOG_ERR, "Class $self FAILED with unexpected error: ".$e->text);
-		$self->failedJob($job, $e->text."(Class $self)");
+		1; 
+	} or do {
+		my $E = $@;
+		if ($E->isa('Helios::Error::Warning')) {
+			# you can throw this in your run() method to indicate  
+			# there was a problem, but it wasn't bad enough for the job to fail
+			$self->logMsg($job, LOG_WARNING, "WARNING: ".$E);	
+			$self->completedJob($job);
+		} elsif ($E->isa('Helios::Error::Fatal')) {
+			# you can throw this in your run() method to indicate a job failed
+			# calling failedJob() will tell Helios to mark it as failed
+			# but allow it to be retried if your service supports that
+			$self->logMsg($job, LOG_ERR, "FAILED: ".$E);
+			$self->failedJob($job, $E, 1);			
+		} else {
+			# this will catch all the other exceptions that happen
+			# if you don't really care what kind of error was thrown,
+			# this (and the $E declaration above) is all you really need
+			# in your 'or do' block.
+			$self->logMsg($job, LOG_ERR, "FAILED with unexpected error: ".$E);
+			$self->failedJob($job, $E);
+		}
 	};
 
 }
 
 
+=head2 printConfigParams()
+
+This method prints the service's config params to the terminal.  It's only 
+called when Helios::TestService is run in debug mode.
+
+=cut
+
+sub printConfigParams {
+	my $self = shift;
+	my $c = $self->getConfig();
+
+	print "<--CONFIG PARAMS-->\n";
+	foreach (sort keys %$c) {
+		print $_.' => '.$c->{$_}."\n";
+	}
+	return 1;
+}
+
+
+=head2 printJobArgs()
+
+This method prints the job arguments passed to the service to the terminal.  
+It's only called when Helios::TestService is run in debug mode.
+
+=cut
+
+sub printJobArgs {
+	my $self = shift;
+	my $j = $self->getJob();
+	my $a = $self->getJobArgs($j);
+	
+	print "<--JOB ARGUMENTS-->\n"; 
+	foreach (sort keys %$a) {
+		print $_.' => '.$a->{$_}."\n";
+	}
+	return 1;
+}
 
 
 1;
@@ -125,7 +160,7 @@ Andrew Johnson, E<lt>ajohnson at ittoolbox dotcomE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2008 by CEB Toolbox, Inc.
+Copyright (C) 2012 by Andrew Johnson.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.0 or,

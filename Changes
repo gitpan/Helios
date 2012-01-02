@@ -1,5 +1,23 @@
 Revision history for Perl extension Helios.
 
+2.30_5272  Sun Jan 01 23:30:00 2012
+	-Renamed runMetajob() to metarun()
+	-Renamed DOWNSHIFT_ON_FAILED_JOB to DOWNSHIFT_ON_NONZERO_RUN to 
+	 make it clearer what it does.
+	-Rewrote Helios::TestService to be more clear and up-to-date.
+	-Updated copyright notices (Happy New Year!)
+	-Helios::Job:  changed failed() and failedNoRetry() to limit the 
+	 char length of the error recorded to 254 chars.  That's one less 
+	 than the default size of the db field in the ERROR table, so it 
+	 should prevent long errors like stack traces from unexpectedly 
+	 blowing up worker processes and potentially losing jobs
+	-Helios::Service->work():  calls to run() and metarun() are now 
+	 wrapped in an eval {} block to catch uncaught exceptions.  If the
+	 run() or metarun() method of a service dies while processing a 
+	 job, the uncaught exception will be caught & logged, the job in 
+	 question will be failed, and the worker process will be exited.  
+	 This will prevent worker processes from unexpectedly blowing up 
+	 and losing jobs.
 2.30_5271  Sun Jan 01 11:44:00 2012
 	-Changed Helios::Service->work() to ignore the value returned by a
 	 service's run() or runMetajob() method by default.  Previous 
@@ -15,7 +33,7 @@ Revision history for Perl extension Helios.
 	 failed in run() or runMetajob() and not worry about returning anything.
 	 This new behavior also has the advantage of working with all of the 
 	 popular modes of Perl exception handling (using Perl's eval {} will return
-	 1 if successful, while Try::Tiny and Error's try {} will not.
+	 1 if successful, while Try::Tiny and Error's try {} will not).
 	 	 
 	 Anyone requiring the old behavior can use the new DOWNSHIFT_ON_FAILED_JOB 
 	 parameter to enable it.

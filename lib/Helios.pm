@@ -2,7 +2,7 @@ package Helios;
 
 use 5.008000;
 
-our $VERSION = '2.30_5271';
+our $VERSION = '2.30_5272';
 
 
 =head1 NAME
@@ -40,7 +40,7 @@ Andrew Johnson, E<lt>lajandy at cpan dotorgE<gt>
 
 Copyright (C) 2008-9 by CEB Toolbox, Inc.
 
-Portions of this software are Copyright (C) 2009-11 by Andrew Johnson where noted.
+Portions of this software are Copyright (C) 2009-12 by Andrew Johnson where noted.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.0 or,
