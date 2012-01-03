@@ -9,7 +9,7 @@ use Error qw(:try);
 
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.30_4931';
+our $VERSION = '2.31_0111';
 
 =head1 NAME
 
@@ -59,6 +59,13 @@ sub logMsg {
 	my $params = $self->getConfig();
 	my $jobType = $self->getJobType();
 	my $hostname = $self->getHostname();
+
+    # if this log message's priority is lower than log_priority_threshold,
+    # don't bother logging the message
+    if ( defined($params->{log_priority_threshold}) &&
+        $level > $params->{log_priority_threshold} ) {
+        return 1;
+    }
 
 	my $retries = 0;
 	my $retry_limit = 3;

@@ -20,7 +20,7 @@ use Helios::ConfigParam;
 use Helios::LogEntry;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.30_5272';
+our $VERSION = '2.31_0111';
 
 our $CACHED_CONFIG;
 our $CACHED_CONFIG_RETRIEVAL_COUNT = 0;
@@ -567,6 +567,8 @@ sub getFuncidFromDb {
 }
 
 
+
+
 =head2 jobsWaiting() 
 
 Scans the job queue for jobs that are ready to run.  Returns the number of jobs 
@@ -754,7 +756,7 @@ the log priorities defined by Sys::Syslog:
     LOG_DEBUG    7
    
 LOG_DEBUG, LOG_INFO, LOG_NOTICE, LOG_WARNING, and LOG_ERR are the most common 
-used by Helios; LOG_INFO is the default.
+used by Helios itself; LOG_INFO is the default.
 
 =back
 
@@ -762,7 +764,8 @@ The host, process id, and service class are automatically recorded with your log
 message.  If you supplied either a Helios::Job object or a priority level, these
 will also be recorded with your log message.
 
-This method returns a true value if successful and throws an exception if errors occur.   
+This method returns a true value if successful and throws a 
+Helios::Error::LoggingError if errors occur.   
 
 =head3 LOGGING SYSTEM CONFIGURATION
 
@@ -781,7 +784,7 @@ application section of your helios.ini file.
 
 A comma delimited list of interface classes to external logging systems.  Each 
 of these classes should implement (or otherwise extend) the Helios::Logger 
-class.  Each class will most likely have its own configuration parameters to 
+class.  Each class will have its own configuration parameters to 
 set; consult the documentation for the interface class you're trying to 
 configure.
 
@@ -807,6 +810,10 @@ to be discarded.  For example, a line in your helios.ini like:
  log_priority_threshold=6
 
 will cause any log messages of priority 7 (LOG_DEBUG) to be discarded.
+
+This configuration option is supported by the internal Helios logger 
+(Helios::Logger::Internal).  Other Helios::Logger systems may or may not 
+support it; check the documentation of the logging module you plan to use.
 
 =head3 COPYRIGHT AND LICENSE
 

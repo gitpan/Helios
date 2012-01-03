@@ -1,5 +1,8 @@
 Revision history for Perl extension Helios.
 
+2.31_0111  Mon Jan 02 23:30:00 2012
+	-HeliosX::Logger::Internal: re-added support for 
+	 log_priority_threshold config param
 2.30_5272  Sun Jan 01 23:30:00 2012
 	-Renamed runMetajob() to metarun()
 	-Renamed DOWNSHIFT_ON_FAILED_JOB to DOWNSHIFT_ON_NONZERO_RUN to 
