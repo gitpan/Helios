@@ -1,0 +1,117 @@
+UBUNTU/DEBIAN INSTALL
+
+It is relatively easy to install Helios on Debian and Ubuntu systems as Perl is
+relatively up-to-date and almost all of Helios's dependencies are packaged as 
+.debs and waiting to be downloaded and installed with simple apt-get commands.
+
+
+1) Install MySQL
+
+If you don't already have a MySQL server installed, you can install it with:
+
+    apt-get install mysql-server
+
+If you already have a MySQL server up and running that you want to use on 
+another server, you can just install the MySQL client:
+
+    apt-get install mysql-client
+
+Both the mysql-server and mysql-client packages will install the Perl DBI and 
+DBD::mysql modules, if they aren't already installed.
+
+Once you have your MySQL server up and running (there are plenty of 
+instructions for that elsewhere on the Web), use the sql/helios_schema.sql 
+to create a database schema for Helios to use.  Also make sure you create a 
+database user for Helios services to use to connect to the database.  Once 
+everything is set with the database, proceed to the next step.
+
+
+2) Install Helios dependencies
+
+As mentioned earlier, almost all of Helios's dependencies can be installed via 
+apt-get (and actually, the one that is not packaged is minor).
+
+Issue the following apt-get commands as the root user or via sudo:
+
+    apt-get install libdbi-perl
+    apt-get install libdbd-mysql-perl
+    apt-get install libdata-objectdriver-perl
+    apt-get install libtheschwartz-perl
+    apt-get install libxml-simple-perl
+    apt-get install libconfig-inifiles-perl
+    apt-get install libtest-simple-perl
+    apt-get install liberror-perl
+    apt-get install libwww-perl
+
+(The first two packages listed above should have been installed with MySQL, but 
+are included for completeness.)
+
+The remaining dependency is Pod::Parser, which can be easily installed using
+the CPAN shell.  Again as root or using sudo, issue these commands:
+
+    perl -MCPAN -eshell
+    install Pod::Parser
+	exit
+	
+You can also manually download and install it from CPAN if you like.    
+
+
+3) Install Helios
+
+At this point you are ready to install the Helios core system.  If you're 
+reading this you have probably already downloaded the distribution from CPAN, so 
+to install Helios you need only issue the following commands:
+
+    perl Makefile.PL
+    make
+    make test
+    sudo make install
+    
+    
+5) Initial Helios configuration - helios.ini
+
+There is a sample helios.ini file included in the Helios distribution to help 
+guide your initial install.  To specify the Helios database connection, specify 
+the correct dsn, user, and password values in the [global] section.  Helios by 
+default will place PID files for the daemons it launches in /var/run/helios; 
+you may want to change this location by specifying the pid_path parameter.  
+There are other parameters you can specify; check the helios.pl man page for 
+more information. 
+
+Just about everything in Helios depends on a helios.ini file to specify 
+initial settings and connection information for the Helios database.  The 
+helios.pl loader/daemon program will look for its .ini file in 
+the location specified by the HELIOS_INI environment variable, so adding 
+
+    export HELIOS_INI=/path/to/helios.ini
+
+to either your global user profile or the profile of the user you intend to run     
+Helios under is probably a good idea.  
+
+
+4) Install Apache HTTP Server (optional)
+
+If you want to submit jobs to Helios via HTTP, you'll need a web server with 
+built-in CGI support.  The most obvious choice is the Apache HTTP Server, which 
+you can install with:
+
+    apt-get install apache2
+
+You'll need to edit your Apache configuration to enable mod_cgi.  Once your 
+Apache server is configured, install the submitJob.pl program as a CGI program 
+by issue these commands as root or via sudo:
+
+    cp cgi-bin/submitJob.pl /usr/lib/cgi-bin
+	chown root.root /usr/lib/cgi-bin/submitJob.pl
+	chmod a+rx /usr/lib/cgi-bin/submitJob.pl
+	
+You'll also need to edit your Apache configuration to add the HELIOS_INI env var
+so submitJob.pl can find the helios.ini file; use the SetEnv directive in your 
+Apache configuration for this.
+
+
+5) Install Helios::Panoptes (optional)
+
+Helios::Panoptes is the central web-based administration tool for Helios.  You 
+will only need to install it on one host.  Panoptes is packaged separately and 
+has its own installation instructions; refer its README for instructions.

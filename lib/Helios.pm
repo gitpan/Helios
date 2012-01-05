@@ -2,27 +2,30 @@ package Helios;
 
 use 5.008000;
 
-our $VERSION = '2.31_0111';
+our $VERSION = '2.31_0141';
 
 
 =head1 NAME
 
-Helios - a framework for developing asynchronous distributed job processing applications
+Helios - a parallel distributed job processing system
 
 =head1 DESCRIPTION
 
-Helios is a system for building asynchronous distributed job processing applications.  
-Applications that need to process millions of small units of work in parallel can use the Helios 
-system to scale this work across the multiple processes and servers that form a Helios collective. 
-Helios may also be used to improve the user experience on websites.  By utilizing the framework's 
-asynchronous job processing services, potential timeout issues can be eliminated and response times 
-decreased for larger tasks invoked in response to user input.  The web server application can "fire 
-and forget" in the background, immediately returning control to the user.  Using Helios, simple 
-Perl applications can be written to distribute workloads throughout the Helios collective while 
+Helios is a system for building asynchronous distributed job processing 
+applications.  Applications that need to process millions of small units of 
+work in parallel can use the Helios system to scale this work across the 
+multiple processes and servers that form a Helios collective.  Helios may also 
+be used to improve the user experience on websites.  By utilizing the 
+framework's APIs, potential timeout issues can be eliminated and response times 
+decreased for larger tasks invoked in response to user input.  The web server 
+application can "fire and forget" in the background, immediately returning 
+control to the user.  Using Helios, simple Perl applications can be written 
+to distribute massive workloads throughout the Helios collective while 
 still retaining centralized management.
 
-The Helios module itself is merely a placeholder for versioning and documentation purposes.  If 
-you want to require Helios (or a certain version of it) in your package, adding 
+The Helios module itself is merely a placeholder for versioning and 
+documentation purposes.  If you want to require Helios (or a certain version 
+of it) in your package, adding 
 
  Helios => 2.00
 

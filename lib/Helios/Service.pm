@@ -20,7 +20,7 @@ use Helios::ConfigParam;
 use Helios::LogEntry;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.31_0111';
+our $VERSION = '2.31_0141';
 
 our $CACHED_CONFIG;
 our $CACHED_CONFIG_RETRIEVAL_COUNT = 0;
@@ -96,8 +96,8 @@ elsewhere in this document for specific terms.
 
 =cut
 
-sub max_retries { return MaxRetries(); }
-sub retry_delay { return RetryInterval(); }
+sub max_retries { $_[0]->MaxRetries(); }
+sub retry_delay { $_[0]->RetryInterval(); }
 
 sub work {
 	my $class = shift;
