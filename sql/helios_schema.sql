@@ -1,3 +1,14 @@
+CREATE DATABASE helios_db;
+
+# Uncomment the lines below and edit them to match security policies for your
+# environment.  The Helios user only needs the access outlined in the GRANT 
+# statement below for the core Helios system to function. 
+#CREATE USER 'helios'@'%' IDENTIFIED BY '';
+#GRANT INSERT,DELETE,UPDATE,SELECT ON helios_db.* TO 'helios'@'%';
+#
+
+USE helios_db;
+
 CREATE TABLE funcmap (
         funcid         INT UNSIGNED PRIMARY KEY NOT NULL AUTO_INCREMENT,
         funcname       VARCHAR(255) NOT NULL,

@@ -1,9 +1,20 @@
 Revision history for Perl extension Helios.
 
-2.31_0131  Wed Jan 04 23:00:00 2012
+2.31_0172  Sun Jan 08 23:00:00 2012
+	-2.40 RELEASE CANDIDATE 2
+	-shenanigan prevention
+	-Helios::Service->work() returns 0 to helios.pl launch_worker() now 
+	 (prevents helios.pl from carping about an undefined return code)
+	-sql/helios_schema.sql is more complete; creates database and (if 
+	 uncommented) user
+	-Bundle::Helios added (still experimental)
+	-Updated INSTALL and added INSTALL.ubuntu & INSTALL.redhat
+	-Updated Stub::StubService for clarity
+2.31_0141  Wed Jan 04 23:00:00 2012
 	-2.40 RELEASE CANDIDATE 1
 	-Fixed MaxRetries() and RetryInterval()
 	-Added INSTALL.ubuntu
+	-Removed sql/helios_schema_20upgrade.sql (obsolete)
 2.31_0111  Mon Jan 02 23:30:00 2012
 	-HeliosX::Logger::Internal: re-added support for 
 	 log_priority_threshold config param

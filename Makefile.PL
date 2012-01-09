@@ -6,7 +6,7 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     NAME              => 'Helios',
     AUTHOR            => 'Andrew Johnson <lajandy at cpan dotorg>',
-    ABSTRACT          => 'A framework for developing asynchronous distributed job processing applications.',
+    ABSTRACT          => 'A system for distributed job processing applications.',
     LICENSE           => 'perl',
     VERSION_FROM      => 'lib/Helios.pm', # finds $VERSION
     PREREQ_PM         => {   Test::Simple           => 0.72,
@@ -17,8 +17,6 @@ WriteMakefile(
                              DBD::mysql             => 3.0,
                              Error                  => 0.17,
                              XML::Simple            => 2.14,
-                             Sys::Hostname          => 1.00,
-                             Bundle::LWP            => '',
                              Pod::Usage             => ''
 							},
     EXE_FILES         => [ 'helios.pl', 'helios_job_submit.pl', 'helios_log_clean.pl'],

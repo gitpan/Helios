@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 use 5.008;
 use strict;
@@ -17,7 +17,7 @@ use Helios;
 use Helios::Error;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.22';
+our $VERSION = '2.31_0172';
 
 =head1 NAME
 
@@ -260,6 +260,10 @@ print "Helios ",$Helios::VERSION,"\n";
 print "helios.pl Service Daemon version $VERSION\n";
 # --version support
 if ( $CLASS eq '--version') { exit(); }
+if ( $worker_class !~ /^[A-Za-z]([A-Za-z0-9]|:{2})*[A-Za-z0-9]$/ ) {
+	print "Sorry, requested name is invalid: $worker_class\n";
+	exit(1);
+}
 print "Attempting to load $worker_class...\n"; 
 unless ( $worker_class->can('new') ) {
         eval "require $worker_class";

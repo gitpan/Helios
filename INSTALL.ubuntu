@@ -2,7 +2,8 @@ UBUNTU/DEBIAN INSTALL
 
 It is relatively easy to install Helios on Debian and Ubuntu systems as Perl is
 relatively up-to-date and almost all of Helios's dependencies are packaged as 
-.debs and waiting to be downloaded and installed with simple apt-get commands.
+.deb files.  The following installation procedure was tested and shown to 
+work on Ubuntu 11.04.
 
 
 1) Install MySQL
@@ -21,21 +22,22 @@ DBD::mysql modules, if they aren't already installed.
 
 Once you have your MySQL server up and running (there are plenty of 
 instructions for that elsewhere on the Web), use the sql/helios_schema.sql 
-to create a database schema for Helios to use.  Also make sure you create a 
-database user for Helios services to use to connect to the database.  Once 
-everything is set with the database, proceed to the next step.
+to create a database schema for Helios to use.  Uncomment and edit the lines 
+that create the 'helios' user to set an appropriate password.  Once the schema
+file is ready, issue the following command to create the helios_db schema and 
+helios user:
+
+    mysql -u root -p < sql/helios_schema.sql
+
+You'll be prompted for your MySQL root password, then your helios_db schema 
+will be created.
 
 
 2) Install Helios dependencies
 
 As mentioned earlier, almost all of Helios's dependencies can be installed via 
-apt-get (and actually, the one that is not packaged is minor).
+apt-get.  Issue the following apt-get commands as the root user or via sudo:
 
-Issue the following apt-get commands as the root user or via sudo:
-
-    apt-get install libdbi-perl
-    apt-get install libdbd-mysql-perl
-    apt-get install libdata-objectdriver-perl
     apt-get install libtheschwartz-perl
     apt-get install libxml-simple-perl
     apt-get install libconfig-inifiles-perl
@@ -43,50 +45,47 @@ Issue the following apt-get commands as the root user or via sudo:
     apt-get install liberror-perl
     apt-get install libwww-perl
 
-(The first two packages listed above should have been installed with MySQL, but 
-are included for completeness.)
-
 The remaining dependency is Pod::Parser, which can be easily installed using
 the CPAN shell.  Again as root or using sudo, issue these commands:
 
-    perl -MCPAN -eshell
+    sudo perl -MCPAN -eshell
     install Pod::Parser
 	exit
 	
 You can also manually download and install it from CPAN if you like.    
 
 
-3) Install Helios
+3) Configure & Install Helios
 
-At this point you are ready to install the Helios core system.  If you're 
-reading this you have probably already downloaded the distribution from CPAN, so 
-to install Helios you need only issue the following commands:
+At this point you are ready to install the Helios core system.  Before you 
+install the package however, you should edit the helios.ini config file and 
+set the HELIOS_INI environment variable; this will allow the system to test 
+database connectivity during the 'make test' phase.
+
+Open the sample helios.ini file and enter the datasource name, MySQL user and 
+password information in the example lines provided.  Also create the 
+/var/run/helios path or change the pid_path line to a place your Helios system 
+will be able to write PID files to.  Once you've done that, save the file and 
+set the HELIOS_INI environment variable to point to the file:
+
+    export HELIOS_INI=/path/to/helios.ini
+
+Make sure the path is an absolute path!  You'll probably want to add the line 
+above to the profile of the user your services will run as so Helios will 
+always know where its configuration file is.
+
+Once you're done, you can install the Helios package by issuing the following 
+commands:
 
     perl Makefile.PL
     make
     make test
     sudo make install
-    
-    
-5) Initial Helios configuration - helios.ini
 
-There is a sample helios.ini file included in the Helios distribution to help 
-guide your initial install.  To specify the Helios database connection, specify 
-the correct dsn, user, and password values in the [global] section.  Helios by 
-default will place PID files for the daemons it launches in /var/run/helios; 
-you may want to change this location by specifying the pid_path parameter.  
-There are other parameters you can specify; check the helios.pl man page for 
-more information. 
+If you want to install Helios in a private user directory instead of a path 
+available to all users, you can use the INSTALL_BASE option of Makefile.PL:
 
-Just about everything in Helios depends on a helios.ini file to specify 
-initial settings and connection information for the Helios database.  The 
-helios.pl loader/daemon program will look for its .ini file in 
-the location specified by the HELIOS_INI environment variable, so adding 
-
-    export HELIOS_INI=/path/to/helios.ini
-
-to either your global user profile or the profile of the user you intend to run     
-Helios under is probably a good idea.  
+    perl Makefile.PL INSTALL_BASE=/home/helios
 
 
 4) Install Apache HTTP Server (optional)
@@ -107,7 +106,9 @@ by issue these commands as root or via sudo:
 	
 You'll also need to edit your Apache configuration to add the HELIOS_INI env var
 so submitJob.pl can find the helios.ini file; use the SetEnv directive in your 
-Apache configuration for this.
+Apache configuration for this:
+
+    SetEnv HELIOS_INI /path/to/helios.ini
 
 
 5) Install Helios::Panoptes (optional)
@@ -115,3 +116,5 @@ Apache configuration for this.
 Helios::Panoptes is the central web-based administration tool for Helios.  You 
 will only need to install it on one host.  Panoptes is packaged separately and 
 has its own installation instructions; refer its README for instructions.
+
+

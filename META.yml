@@ -1,7 +1,7 @@
 --- #YAML:1.0
 name:               Helios
-version:            2.31_0141
-abstract:           A framework for developing asynchronous distributed job processing applications.
+version:            2.31_0172
+abstract:           A system for distributed job processing applications.
 author:
     - Andrew Johnson <lajandy at cpan dotorg>
 license:            perl
@@ -11,14 +11,12 @@ configure_requires:
 build_requires:
     ExtUtils::MakeMaker:  0
 requires:
-    Bundle::LWP:         
     Config::IniFiles:    2.38
     Data::ObjectDriver:  0.04
     DBD::mysql:          3
     DBI:                 1.52
     Error:               0.17
     Pod::Usage:          
-    Sys::Hostname:       1
     Test::Simple:        0.72
     TheSchwartz:         1.04
     XML::Simple:         2.14

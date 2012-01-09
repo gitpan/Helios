@@ -1,4 +1,4 @@
-Helios version 2.00
+Helios version 2.40
 ===================
 
 INSTALLATION
@@ -27,7 +27,6 @@ DBD::mysql
 DBI
 Data::ObjectDriver
 Error
-Sys::Syslog
 TheSchwartz
 XML::Simple
 

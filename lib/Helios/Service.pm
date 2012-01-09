@@ -20,7 +20,7 @@ use Helios::ConfigParam;
 use Helios::LogEntry;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.31_0141';
+our $VERSION = '2.31_0172';
 
 our $CACHED_CONFIG;
 our $CACHED_CONFIG_RETRIEVAL_COUNT = 0;
@@ -208,6 +208,17 @@ sub work {
 		$self->logMsg(LOG_NOTICE,"Class $class exited (downshift)");
 		exit(0);
 	}
+
+	# we'll assume if we got here, things went reasonably well
+	# (run() or metarun() succeeded, or it failed and the errors were caught
+	# we're going to return 0 to the calling routine
+	# in normal mode, this will immediately return to launch_worker() in helios.pl
+	#     (which will exit with this return code)
+	# in OVERDRIVE, this will return to TheSchwartz->work_until_done(), which 
+	# will call this work() with another TheSchwartz::Job, over and over again
+	# until it runs out of jobs.  When the jobs are exhausted, then it returns
+	# to launch_worker() in helios.pl (which then exits with this return code)
+	return 0;
 }
 
 
@@ -876,6 +887,9 @@ sub logMsg {
 	foreach my $logger (@loggers) {
 		# init the logger if it hasn't been initialized yet
 		unless ( defined($INIT_LOG_CLASSES{$logger}) ) {
+			if ( $logger !~ /^[A-Za-z]([A-Za-z0-9]|:{2})*[A-Za-z0-9]$/ ) {
+				Helios::Error::LoggingError->throw("Sorry, requested Logger name is invalid: ".$logger);
+			}
 			# attempt to init the class
 			unless ( $logger->can('init') ) {
 		        eval "require $logger";

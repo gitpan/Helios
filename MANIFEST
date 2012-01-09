@@ -6,7 +6,9 @@ helios.pl
 helios_job_submit.pl
 helios_log_clean.pl
 INSTALL
+INSTALL.redhat
 INSTALL.ubuntu
+lib/Bundle/Helios.pm
 lib/Helios.pm
 lib/Helios/ConfigParam.pm
 lib/Helios/Error.pm
