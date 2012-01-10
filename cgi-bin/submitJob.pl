@@ -5,76 +5,14 @@ use strict;
 use warnings;
 use CGI qw(:cgi -debug);
 use CGI::Carp 'fatalsToBrowser';
-
+$CGI::POST_MAX=1024 * 1000;		# 1MB maximum request size 
+$CGI::DISABLE_UPLOADS = 1;		# the mechanisms we're using aren't the upload
+								# the file upload mechanism
 use Helios::Job;
 use Helios::Service;
 use Helios::LogEntry::Levels ':all';
 
-our $VERSION = '2.30_5041';
-
-=head1 NAME
-
-submitJob.pl - CGI script to receive jobs for Helios via HTTP POST
-
-=head1 DESCRIPTION
-
-#[] more doc!
-
-=head1 SUPPORTED FORMATS
-
-#[] more documentation here later
-
-=head2 FORM ENCODED
-
-#[] more doc!
-
-=head2 XML POSTDATA
-
-Example of submitting a Helios job by POSTing an XML stream:
-
- #!/usr/bin/env perl 
- use strict;
- use warnings;
- use LWP::UserAgent;
- use HTTP::Request::Common;
- my $ua = LWP::UserAgent->new();
- my $jobXML = <<ENDXML;
- <?xml version="1.0" encoding="UTF-8"?>
- <job type="Helios::TestService">
- <params> 
- 	<arg1>a posted test job!</arg1>
- 	<note>this time without the class map</note>
- </params>
- </job>
- ENDXML
-
- my $r = $ua->request(POST 'http://localhost/cgi-bin/submitJob.pl',
-		Content_Type => 'text/xml',
-		Content => $message
- );
- print $response->as_string;
-
-=head1 RESPONSE
-
- HTTP/1.1 200 OK
- Connection: close
- Date: Fri, 16 Dec 2011 04:24:30 GMT
- Server: Apache/2.2.14 (Ubuntu)
- Vary: Accept-Encoding
- Content-Type: text/xml; charset=ISO-8859-1
- Client-Date: Fri, 16 Dec 2011 04:24:30 GMT
- Client-Peer: 127.0.0.1:80
- Client-Response-Num: 1
- Client-Transfer-Encoding: chunked
-
- <?xml version="1.0" encoding="UTF-8"?>
- <response>
- <status>0</status>
- <jobid>42</jobid>
- </response>
-
-
-=cut
+our $VERSION = '2.31_0211';
 
 # grab the CGI params (we may not have any)
 my $cgi = CGI->new();
@@ -120,8 +58,9 @@ eval {
 	$job->setArgXML($argXML);
 	$jobid = $job->submit();
 } or do {
-	$Service->logMsg(LOG_ERR, $@);
-	die($@);
+	my $E = $@;
+	$Service->logMsg(LOG_ERR, $E);
+	die($E);
 };
 
 # if we encountered no errors, the job was submitted successfully
@@ -136,20 +75,8 @@ print <<RESPONSE;
 RESPONSE
 
 # DONE!
-exit(0);
 
 
-=head1 FUNCTIONS
-
-=head2 lookupJobClass($type)
-
-Given a job type, lookupJobClass() queries the HELIOS_CLASS_MAP table to 
-determine if a Helios service class is associated with that job type.  If 
-there is, the function returns that service class.  If it isn't, the original 
-type is assumed to be the name of the desired service class, and it is 
-returned to the caller instead.
-
-=cut
 
 sub lookupJobClass {
 	my $type = shift;
@@ -164,16 +91,9 @@ sub lookupJobClass {
 }
 
 
-=head2 parseArgXMLForType
-
-=cut
-
 sub parseArgXMLForType {
 	my $parsedXml = Helios::Job->parseArgXML($_[0]);
 	my $type;
-#t	use Data::Dumper;
-#	print "PARSED ARGS:\n";
-#	print Dumper($parsedXml);
 	if ( defined($parsedXml->{job}->[0]->{type}) ) {
 		return $parsedXml->{job}->[0]->{type};
 	} else {
@@ -181,6 +101,153 @@ sub parseArgXMLForType {
 		die("submitJob.pl ERROR: type attribute not specified in XML stream");
 	}
 }
+
+
+=head1 NAME
+
+submitJob.pl - CGI script to receive jobs for Helios via HTTP POST
+
+=head1 DESCRIPTION
+
+Besides the built-in Perl job submission API and the helios_job_submit.pl 
+command line utility, job can be submitted to Helios via an HTTP POST 
+request by using the submitJob.pl CGI program.  
+
+=head1 SUPPORTED FORMATS
+
+The job submission request can be submitted either in a form-encoded request or
+a simple stream of XML POSTDATA.
+
+=head2 FORM ENCODED
+
+You can submit a job through a form-encoded request.  There are two 
+form fields:
+
+=over 4
+
+=item type
+
+The job type, ie the service class that will perform the job
+
+=item params
+
+The job arguments, ie the actual parameters of the job, in XML format
+
+=back
+
+You can submit requests in this format via a browser using the following 
+HTML form as a guide:
+
+ <form method="post" action="http://host/cgi-bin/jobSubmit.pl">
+ <b>Job Type (Service Class)</b> <br />
+ <input type="text" name="type" />
+ <br />
+ <br />
+ <b>Job Arguments</b> <br />
+ <textarea rows="10" cols="80" name="params"></textarea>
+ <br />
+ <input type="submit" value="Submit Job" />
+ </form>
+ 
+The params field should contain the job arguments in XML format, like the 
+following example:
+
+ <job>
+ 	<params>
+ 		<arg1>value1</arg1>
+ 		<id>value2</id>
+ 		<email>root@somewhere.com</email>
+ 	</params>
+ </job>
+
+The <arg1>, <id>, etc. tags will be parsed into Perl hash values by Helios 
+when the job is run.  Inside the <params> section, the tag names are up to you; 
+though Helios does checks to make sure the job XML is well-formed, there is no 
+DTD that the text is validated against.  Thus, you have a certain amount of 
+freedom when deciding what information to pass to Helios as a job argument.  
+However, it is generally a good idea to keep things short and simple.  
+
+=head2 XML POSTDATA
+
+Instead of encoding your request as a form, you can simply POST a stream of 
+XML text.  In this type of request, the job argument XML is in the same format 
+as above, with the addition that the job type is specified as a property of the 
+<job> tag:
+
+ <?xml version="1.0" encoding="UTF-8"?>
+ <job type="Helios::TestService">
+ 	<params>
+ 		<arg1>a job submitted via HTTP</arg1>
+ 		<note>this one was posted as an XML stream</note>
+ 	</params>
+ </job>
+
+To POST the above XML stream with Perl using LWP::UserAgent, use the following 
+script as an example:
+
+ #!/usr/bin/env perl 
+ use strict;
+ use warnings;
+ use LWP::UserAgent;
+ use HTTP::Request::Common;
+ my $ua = LWP::UserAgent->new();
+ my $jobXML = <<ENDXML;
+ <?xml version="1.0" encoding="UTF-8"?>
+ <job type="Helios::TestService">
+ 	<params> 
+ 		<arg1>a job submitted via HTTP</arg1>
+ 		<note>this one was posted as an XML stream</note>
+ 	</params>
+ </job>
+ ENDXML
+
+ my $r = $ua->request(POST 'http://localhost/cgi-bin/submitJob.pl',
+		Content_Type => 'text/xml',
+		Content => $message
+ );
+ print $response->as_string;
+
+=head1 RESPONSE
+
+Regardless of which encoding method you use for your request, if your job was 
+submitted successfully you'll receive a response like the following:
+
+ HTTP/1.1 200 OK
+ Connection: close
+ Date: Fri, 16 Dec 2011 04:24:30 GMT
+ Server: Apache/2.2.14 (Ubuntu)
+ Vary: Accept-Encoding
+ Content-Type: text/xml; charset=ISO-8859-1
+ Client-Date: Fri, 16 Dec 2011 04:24:30 GMT
+ Client-Peer: 127.0.0.1:80
+ Client-Response-Num: 1
+ Client-Transfer-Encoding: chunked
+
+ <?xml version="1.0" encoding="UTF-8"?>
+ <response>
+ <status>0</status>
+ <jobid>42</jobid>
+ </response>
+
+If your job was submitted successfully, the <status> section will contain a 0,
+and the <jobid> section will contain the jobid of the submitted job.  If there 
+was an error during the job submission process, a 500 Internal Server Error 
+will be returned.
+
+=head1 FUNCTIONS
+
+=head2 lookupJobClass($type)
+
+Given a job type, lookupJobClass() queries the HELIOS_CLASS_MAP table to 
+determine if a Helios service class is associated with that job type.  If 
+there is, the function returns that service class.  If it isn't, the original 
+type is assumed to be the name of the desired service class, and it is 
+returned to the caller instead.
+
+=head2 parseArgXMLForType($xmlstring)
+
+Given a string of job arguments in XML format, parseArgXMLForType() 
+returns the value of the type attribute of the <job> tag, if specified.
 
 =head1 SEE ALSO
 
@@ -192,7 +259,7 @@ Andrew Johnson, E<lt>lajandy at cpan dot orgE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2011 Andrew Johnson.
+Copyright (C) 2011-2 Andrew Johnson.
 
 This program is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.0 or,

@@ -1,6 +1,6 @@
 cgi-bin/submitJob.pl
 Changes
-eg/Stub/StubService.pm
+eg/StubService.pm
 helios.ini
 helios.pl
 helios_job_submit.pl

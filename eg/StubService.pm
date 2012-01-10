@@ -1,4 +1,4 @@
-package Stub::StubService;
+package StubService;
 
 use 5.008;
 use strict;
@@ -7,7 +7,7 @@ use base 'Helios::Service';
 use Helios::LogEntry::Levels ':all';
 use Helios::Error;			# pulls in all Helios::Error::* exception types
 
-our $VERSION = '0.02';		# for packaging purposes
+our $VERSION = '0.03';		# for packaging purposes
 
 =head1 NAME
 

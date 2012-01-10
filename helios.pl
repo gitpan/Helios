@@ -17,7 +17,7 @@ use Helios;
 use Helios::Error;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.31_0172';
+our $VERSION = '2.31_0211';
 
 =head1 NAME
 
@@ -260,7 +260,7 @@ print "Helios ",$Helios::VERSION,"\n";
 print "helios.pl Service Daemon version $VERSION\n";
 # --version support
 if ( $CLASS eq '--version') { exit(); }
-if ( $worker_class !~ /^[A-Za-z]([A-Za-z0-9]|:{2})*[A-Za-z0-9]$/ ) {
+if ( $worker_class !~ /^[A-Za-z]([A-Za-z0-9_\-]|:{2})*[A-Za-z0-9_\-]$/ ) {
 	print "Sorry, requested name is invalid: $worker_class\n";
 	exit(1);
 }

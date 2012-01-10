@@ -20,7 +20,7 @@ use Helios::ConfigParam;
 use Helios::LogEntry;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.31_0172';
+our $VERSION = '2.31_0211';
 
 our $CACHED_CONFIG;
 our $CACHED_CONFIG_RETRIEVAL_COUNT = 0;
@@ -887,7 +887,7 @@ sub logMsg {
 	foreach my $logger (@loggers) {
 		# init the logger if it hasn't been initialized yet
 		unless ( defined($INIT_LOG_CLASSES{$logger}) ) {
-			if ( $logger !~ /^[A-Za-z]([A-Za-z0-9]|:{2})*[A-Za-z0-9]$/ ) {
+			if ( $logger !~ /^[A-Za-z]([A-Za-z0-9_\-]|:{2})*[A-Za-z0-9_\-]$/ ) {
 				Helios::Error::LoggingError->throw("Sorry, requested Logger name is invalid: ".$logger);
 			}
 			# attempt to init the class
