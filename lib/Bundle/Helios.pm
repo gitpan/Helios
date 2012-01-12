@@ -1,6 +1,6 @@
 package Bundle::Helios;
 
-$VERSION = "2.31_0172";
+$VERSION = "2.31_0231";
 
 1;
 
@@ -17,8 +17,6 @@ Bundle::Helios - install all Helios related modules
 =head1 CONTENTS
 
 DBI                   1.52
-
-DBD::mysql            3.0
 
 Data::ObjectDriver    0.04
 

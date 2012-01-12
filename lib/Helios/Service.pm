@@ -20,7 +20,7 @@ use Helios::ConfigParam;
 use Helios::LogEntry;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.31_0211';
+our $VERSION = '2.31_0231';
 
 our $CACHED_CONFIG;
 our $CACHED_CONFIG_RETRIEVAL_COUNT = 0;
@@ -880,7 +880,7 @@ sub logMsg {
     # UNLESS it has been specifically turned off
     unless ( defined($config->{internal_logger}) && 
         ( $config->{internal_logger} eq 'off' || $config->{internal_logger} eq '0') ) {
-    	push(@loggers, 'Helios::Logger::Internal');
+    	unshift(@loggers, 'Helios::Logger::Internal');
     }
 
 	# if no loggers configured, this whole section will be skipped
