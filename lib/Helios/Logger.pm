@@ -10,7 +10,7 @@ use Helios::Job;
 use Helios::Error;
 use Helios::Error::LoggingError;
 
-our $VERSION = '2.30_4931';
+our $VERSION = '2.40';
 
 =head1 NAME
 

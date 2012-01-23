@@ -1,6 +1,6 @@
-package Bundle::Helios;
+package Bundle::Helios::Generic;
 
-$VERSION = "2.31_0231";
+$VERSION = "2.40";
 
 1;
 
@@ -8,15 +8,13 @@ __END__
 
 =head1 NAME
 
-Bundle::Helios - install all Helios related modules
+Bundle::Helios::Generic - install all Helios related modules
 
 =head1 SYNOPSIS
 
- perl -MCPAN -e 'install Bundle::Helios'
+ perl -MCPAN -e 'install Bundle::Helios::Generic'
 
 =head1 CONTENTS
-
-DBI                   1.52
 
 Data::ObjectDriver    0.04
 

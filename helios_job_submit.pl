@@ -10,7 +10,7 @@ use Error qw(:try);
 use Helios::Job;
 use Helios::Service;
 
-our $VERSION = '2.00';
+our $VERSION = '2.40';
 
 =head1 NAME
 
@@ -29,7 +29,7 @@ helios_job_submit.pl --help
 Use helios_job_submit.pl to submit a job to the Helios job processing system from the cmd line.  
 The first parameter is the service class, and the second is the parameter XML that will be passed to 
 the worker class for the job.  If the second parameter isn't given, the program will accept input 
-from STDIN; each line will be considered arguments for a separate job.
+from STDIN.
 
 =cut
 

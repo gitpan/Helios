@@ -2,7 +2,7 @@ package Helios::Error::InvalidArg;
 
 use base qw(Helios::Error::BaseError);
 
-our $VERSION = '2.30_5071';
+our $VERSION = '2.40';
 
 1;
 __END__;

@@ -2,12 +2,12 @@ package Helios;
 
 use 5.008000;
 
-our $VERSION = '2.31_0231';
+our $VERSION = '2.40';
 
 
 =head1 NAME
 
-Helios - a parallel distributed job processing system
+Helios - a distributed job processing system
 
 =head1 DESCRIPTION
 

@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Helios
-version:            2.31_0231
+version:            2.40
 abstract:           A system for distributed job processing applications.
 author:
     - Andrew Johnson <lajandy at cpan dotorg>
@@ -16,7 +16,7 @@ requires:
     DBD::mysql:          3
     DBI:                 1.52
     Error:               0.17
-    Pod::Usage:          
+    Pod::Usage:          0.01
     Test::Simple:        0.72
     TheSchwartz:         1.04
     XML::Simple:         2.14

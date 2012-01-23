@@ -1,117 +1,51 @@
 Revision history for Perl extension Helios.
 
-2.31_0231  Thu Jan 12 01:15:00 2012
-	-2.40 RELEASE CANDIDATE 4
-	-Helios::Service->logMsg() tweak to load Helios::Logger::Internal *before*
-	 the other loggers instead of after (reduces headaches if something goes 
-	 wrong in the external loggers)
-	-corrected Helios::Error::LoggingError
-	-tweaks to Bundle::Helios...seems to be work on Ubuntu 11.04, more tests 
-	 needed
-2.31_0211  Mon Jan 09 23:00:00 2012
-	-2.40 RELEASE CANDIDATE 3
-	-shenanigan prevention adjustments
-	-documentation for new submitJob.pl
-	-refactored StubService.pm (it's just an example anyway)
-2.31_0172  Sun Jan 08 23:00:00 2012
-	-2.40 RELEASE CANDIDATE 2
-	-shenanigan prevention
-	-Helios::Service->work() returns 0 to helios.pl launch_worker() now 
-	 (prevents helios.pl from carping about an undefined return code)
-	-sql/helios_schema.sql is more complete; creates database and (if 
-	 uncommented) user
-	-Bundle::Helios added (still experimental)
-	-Updated INSTALL and added INSTALL.ubuntu & INSTALL.redhat
-	-Updated Stub::StubService for clarity
-2.31_0141  Wed Jan 04 23:00:00 2012
-	-2.40 RELEASE CANDIDATE 1
-	-Fixed MaxRetries() and RetryInterval()
-	-Added INSTALL.ubuntu
-	-Removed sql/helios_schema_20upgrade.sql (obsolete)
-2.31_0111  Mon Jan 02 23:30:00 2012
-	-HeliosX::Logger::Internal: re-added support for 
-	 log_priority_threshold config param
-2.30_5272  Sun Jan 01 23:30:00 2012
-	-Renamed runMetajob() to metarun()
-	-Renamed DOWNSHIFT_ON_FAILED_JOB to DOWNSHIFT_ON_NONZERO_RUN to 
-	 make it clearer what it does.
-	-Rewrote Helios::TestService to be more clear and up-to-date.
-	-Updated copyright notices (Happy New Year!)
+2.40  Sun Jan 22 22:30:00 2012
+	-NEW Extensible logging subsystem (Helios::Logger) 
+	-NEW Helios::Error::BaseError exception class; acts as parent for
+	 entire Helios::Error:: hierarchy
+	-NEW Helios::Service->metarun() method to modularize metajob 
+	 handling and provide for extensible metajob support 
+	-NEW service run() and metarun() methods now run in an eval 
+	 block as a process safety measure to catch uncaught exceptions.
+	-NEW MP3IndexerService example application including in eg/
+	 directory (StubService also rewritten for clarity)
+	-REVISED Helios::Service->work() method no longer pays attention 
+	 to return value of run() method (this feature was under-
+	 documented, misunderstood, and caused problems with eval {} and 
+	 Try::Tiny exception handling
+	-REWRITTEN submitJob.pl CGI script; supports sending XML stream 
+	 in addition to form encoding, no longer dependent on 
+	 HELIOS_CLASS_MAP
+	-REWRITTEN Helios::TestService; more modern Perl and easier to 
+	 understand
+	-REWRITTEN install instructions, including specific instructions 
+	 for Red Hat- and Ubuntu-based systems, and including CPAN install 
+     bundles (still experimental)
+    -REWRITTEN Helios::Tutorial 
+    -Helios::Service:  fixed MaxRetries() and RetryInterval() retry 
+     job methods
 	-Helios::Job:  changed failed() and failedNoRetry() to limit the 
 	 char length of the error recorded to 254 chars.  That's one less 
 	 than the default size of the db field in the ERROR table, so it 
 	 should prevent long errors like stack traces from unexpectedly 
-	 blowing up worker processes and potentially losing jobs
-	-Helios::Service->work():  calls to run() and metarun() are now 
-	 wrapped in an eval {} block to catch uncaught exceptions.  If the
-	 run() or metarun() method of a service dies while processing a 
-	 job, the uncaught exception will be caught & logged, the job in 
-	 question will be failed, and the worker process will be exited.  
-	 This will prevent worker processes from unexpectedly blowing up 
-	 and losing jobs.
-2.30_5271  Sun Jan 01 11:44:00 2012
-	-Changed Helios::Service->work() to ignore the value returned by a
-	 service's run() or runMetajob() method by default.  Previous 
-	 Helios versions would understand a nonzero return from run() to 
-	 mean a failed job, and would force the worker process to end even
-	 though the service was in OVERDRIVE mode.  This was considered a 
-	 safety measure as the reason for the job failure was unknown.  
-	 However, this feature was underdocumented and confusing and has 
-	 been removed.  
-	 
-	 The new default behavior doesn't pay attention to the value returned
-	 from run() or runMetajob().  You should mark your job as completed or 
-	 failed in run() or runMetajob() and not worry about returning anything.
-	 This new behavior also has the advantage of working with all of the 
-	 popular modes of Perl exception handling (using Perl's eval {} will return
-	 1 if successful, while Try::Tiny and Error's try {} will not).
-	 	 
-	 Anyone requiring the old behavior can use the new DOWNSHIFT_ON_FAILED_JOB 
-	 parameter to enable it.
-2.30_5232  Wed Dec 28 20:20:00 2011
-	-Added Helios::Service->runMetajob() to update and modularize 
-	 metajob handling code.
-	-Cleaned up some unnecessary warnings from work() and logMsg()
-	-Removed vestigial dependency on XML::Parser in Helios::Service
-	 (forgot that was in there)
-2.30_5072  Wed Dec 20 21:33:00 2011
-	-Same as 5071, but with including BaseError and fixed MANIFEST 
-	 (oops, sorry!)
-2.30_5071  Sun Dec 18 02:30:00 2011
-	-Added Helios::Error::BaseError and modified all Helios::Error::
-	 exception classes to subclass it instead of Error::Simple 
-	 directly.  This creates an actual exception class hierarchy, 
-	 and makes it easy to determine whether a caught exception is a 
-	 Helios error or another kind of error.  (It might also allow 
-	 an eventual move from Error to another exception handling 
-	 system.)
-2.30_5041  Thu Dec 15 23:40:00 2011
-	-Completely rewrote submitJob.pl to allow requester to send job 
-	 arg XML in an HTTP POST; the form encoding is no longer 
-	 necessary (though is still supported to ensure compatibility)
-	 See submitJob.pl for updated job XML syntax
-	 New submitJob.pl also eliminates dependency on HELIOS_CLASS_MAP 
-	 to determine the proper class for a particular job type (though 
-	 HELIOS_CLASS_MAP is still supported)
-	-Removed vestigial dependency on XML::Parser in Helios::Job &
-	 removed mention of it in Makefile.PL
-	-Corrected Makefile.PL to remove mention of XML::SAX, 
-	 XML::Namespace as dependencies (Helios's only direct XML::*
-	 dependency is XML::Simple)
-	-Corrected Makefile.PL with older versions of DBI and XML::Simple.
-	 These versions were packaged as RPMs with CentOS 5.7.  This 
-	 change helps installation on RPM-based Linux OSes, and Helios is 
-	 compatible with these versions.
-2.30_4931  Wed Dec 07 00:52:00 2011
+	 blowing up worker processes and potentially losing jobs.
+	-Revised dependencies:
+	 DBI 1.52 (shipped with RHEL/CentOS 5)
+	 XML::Simple 2.14 (shipped with RHEL/CentOS 5)
+	 Removed XML::SAX dependency (unnecessary)
+	 Removed XML::Namespace dependency (unnecessary)
+	 Removed XML::Parser dependency (unnecessary)
+	-Removed deprecated classes, methods, and other files:
+	 Helios::Service->parseArgXML() (deprecated since 2.00)
+	 Helios::Worker (deprecated since 2.00)
+	 sql/helios_schema_20upgrade.sql	 
+	-Updated copyright notices
 	-Switch to "Linux-style" versioning: 
 	 odd minor version == development version
 	 even minor version == stable version
 	 second minor number == patch level
 	 (we're still also using Perl-style _ for devel versions too)
-	-Merged in HeliosX::ExtLoggerService functionality 
-	 (long overdue but not tested yet!)
-	-Removed Helios::Service->parseArgXML() (deprecated since 2.00)
-	-Removed Helios::Worker (deprecated since 2.00)
 2.23  Fri Sep 10 12:22:00 2010
 	-Helios::Job: fixed bug where getArgXML() returned undef if job
 	 object was vivified from job queue

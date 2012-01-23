@@ -8,7 +8,7 @@ use base qw( Helios::Service );
 use Helios::Error;			
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.30_5272';	
+our $VERSION = '2.40';	
 
 =head1 NAME
 

@@ -10,7 +10,7 @@ use Helios::Error::DatabaseError;
 use Helios::Error::InvalidArg;
 use Helios::Error::LoggingError;
 
-our $VERSION = '2.30_5071';
+our $VERSION = '2.40';
 
 1;
 

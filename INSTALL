@@ -76,12 +76,24 @@ Helios requires the following modules to be installed:
     Error
     Pod::Usage
 
-The easiest way to install these is to use the CPAN Helios bundle.  As the 
-root user or via sudo, issue the following commands to run the CPAN shell and 
-install the Helios bundle:
+You can download and install these packages manually, or you can use the 
+CPAN shell.  As your root user or via sudo, issue the following commands to 
+install Helios and its dependencies:
 
 	perl -MCPAN -eshell
-	cpan> install Bundle::Helios
+	install Data::ObjectDriver
+	install TheSchwartz
+	install Error
+	install Test::Simple
+	install Pod::Usage
+	install Config::IniFiles
+	install Helios
+
+You may also try the Helios generic CPAN bundle.  It may not work in all 
+cases on all systems, but it may save you some time:
+
+	perl -MCPAN -eshell
+	install Bundle::Helios::Generic
 
 If the HELIOS_INI environment variable is set, make test will 
 attempt to use the information in the .ini file to connect to the specified 
@@ -121,8 +133,9 @@ job submission CGI in your host's cgi-bin directory to support job submission
 via HTTP.  If your cgi-bin directory is, say, /usr/local/apache/cgi-bin:
 
     cp cgi-bin/submitJob.pl /usr/local/apache/cgi-bin/
+ 	chown root.root /usr/local/apache/cgi-bin/submitJob.pl
+	chmod a+rx /usr/local/apache/cgi-bin/submitJob.pl
     
-should put submitJob.pl in the right place.  Remember to set the file's owner, 
-group, and permissions make the file secure and executable by your web 
-server. 
+should put submitJob.pl in the right place and set the proper ownership and 
+permissions.
     

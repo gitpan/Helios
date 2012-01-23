@@ -32,14 +32,14 @@ parser:
 	yum install perl-XML-Simple
 
 
-3) Install Helios Bundle
+3) Install Helios & dependencies
 
 Edit the helios.ini to set the MySQL datasource name, username, and password.  
 Also set the pid_path parameter to a location Helios can write PID files to.
 
 Next, set the HELIOS_INI environment variable to point to the helios.ini file:
 
-export HELIOS_INI=/path/to/helios.ini
+    export HELIOS_INI=/path/to/helios.ini
 
 Make sure to use an absolute path!
 
@@ -48,7 +48,19 @@ remaining Helios dependencies and Helios itself.  As root or via sudo, issue
 the following commands:
 
 	perl -MCPAN -eshell
-	cpan> install Bundle::Helios
+	install Data::ObjectDriver
+	install TheSchwartz
+	install Error
+	install Test::Simple
+	install Pod::Usage
+	install Config::IniFiles
+	install Helios
+
+You may also want to try using the CPAN Helios bundle specifically for Red Hat-
+based systems:
+
+	perl -MCPAN -eshell
+	install Bundle::Helios::RedHat
 
 	
 4) Install Apache HTTP Server (optional)

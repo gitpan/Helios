@@ -20,7 +20,7 @@ use Helios::ConfigParam;
 use Helios::LogEntry;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.31_0231';
+our $VERSION = '2.40';
 
 our $CACHED_CONFIG;
 our $CACHED_CONFIG_RETRIEVAL_COUNT = 0;

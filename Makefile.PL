@@ -17,7 +17,7 @@ WriteMakefile(
                              DBD::mysql             => 3.0,
                              Error                  => 0.17,
                              XML::Simple            => 2.14,
-                             Pod::Usage             => ''
+                             Pod::Usage             => 0.01
 							},
     EXE_FILES         => [ 'helios.pl', 'helios_job_submit.pl', 'helios_log_clean.pl'],
     INST_SCRIPT       => 'bin',

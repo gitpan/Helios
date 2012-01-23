@@ -17,7 +17,7 @@ use Helios;
 use Helios::Error;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.31_0211';
+our $VERSION = '2.40';
 
 =head1 NAME
 

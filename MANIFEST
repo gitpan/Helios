@@ -1,5 +1,16 @@
 cgi-bin/submitJob.pl
 Changes
+eg/MP3IndexerService-1.00/Changes
+eg/MP3IndexerService-1.00/lib/MP3IndexerService.pm
+eg/MP3IndexerService-1.00/LICENSE
+eg/MP3IndexerService-1.00/Makefile.PL
+eg/MP3IndexerService-1.00/MANIFEST
+eg/MP3IndexerService-1.00/META.yml
+eg/MP3IndexerService-1.00/mp3submit4index.pl
+eg/MP3IndexerService-1.00/README
+eg/MP3IndexerService-1.00/sql/config.sql
+eg/MP3IndexerService-1.00/sql/schema.sql
+eg/MP3IndexerService-1.00/t/MP3IndexerService.t
 eg/StubService.pm
 helios.ini
 helios.pl
@@ -8,7 +19,8 @@ helios_log_clean.pl
 INSTALL
 INSTALL.redhat
 INSTALL.ubuntu
-lib/Bundle/Helios.pm
+lib/Bundle/Helios/Generic.pm
+lib/Bundle/Helios/RedHat.pm
 lib/Helios.pm
 lib/Helios/ConfigParam.pm
 lib/Helios/Error.pm

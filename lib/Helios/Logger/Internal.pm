@@ -9,14 +9,14 @@ use Error qw(:try);
 
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.31_0111';
+our $VERSION = '2.40';
 
 =head1 NAME
 
 Helios::Logger::Internal - Helios::Logger subclass reimplementing Helios internal logging
 
 =head1 SYNOPSIS
- 
+
  #in helios.ini, enable internal Helios logging (this is default)
  internal_logger=on
  

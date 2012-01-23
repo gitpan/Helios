@@ -12,7 +12,7 @@ use Helios::Job;
 use Helios::Service;
 use Helios::LogEntry::Levels ':all';
 
-our $VERSION = '2.31_0211';
+our $VERSION = '2.40';
 
 # grab the CGI params (we may not have any)
 my $cgi = CGI->new();
@@ -148,7 +148,7 @@ HTML form as a guide:
  <br />
  <input type="submit" value="Submit Job" />
  </form>
- 
+
 The params field should contain the job arguments in XML format, like the 
 following example:
 
