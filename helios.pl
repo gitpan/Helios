@@ -17,7 +17,7 @@ use Helios;
 use Helios::Error;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.40';
+our $VERSION = '2.40_1271';
 
 =head1 NAME
 
@@ -247,6 +247,10 @@ our $SAFE_MODE_RETRIES = 5;				# SAFE MODE support; number of times to retry
 our $ZERO_SLEEP_INTERVAL;				# to reduce needless checking of the database
 our $ZERO_SLEEP_LOG_INTERVAL = 3600;	# to reduce needless log msgs in log_tb
 our $ZERO_SLEEP_LOG_LAST = 0;
+
+our $WORKER_PROCESS = 0;				# used to indicate process has become a worker process
+										# this is used in addition to getppid() to prevent workers
+										# from becoming daemons in case of database instability
 
 # print help if asked
 if ( !defined($CLASS) || ($CLASS eq '--help') || ($CLASS eq '-h') ) {
@@ -507,6 +511,7 @@ MAIN_LOOP:{
 										sleep 1;
 								} elsif (defined $pid) { # $pid is zero here if defined
 										# I'm the child!
+										$WORKER_PROCESS = 1;
 										launch_worker();
 							} elsif ($! == EAGAIN) {
 								# EAGAIN is the supposedly recoverable fork error
@@ -550,6 +555,11 @@ MAIN_LOOP:{
 		
 	} otherwise {
 		my $e = shift;
+		# if we're a worker process and we ended up here
+		# it's a fluke caused by the database instability
+		# we have to bail out and hope the service daemon survives
+		# since the default logger will also be affected by this error, we can't log anything either :(
+		if ( (getppid() > 1) || ($WORKER_PROCESS == 1) ) { exit(42); }
 		if ($DEBUG_MODE) { 
 			print "EXCEPTION THROWN: ",$e->text,"\n"; 
 			print "ATTEMPTING TO RECONNECT...\n";
