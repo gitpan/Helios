@@ -17,7 +17,7 @@ use Helios;
 use Helios::Error;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.40_1271';
+our $VERSION = '2.40_1321';
 
 =head1 NAME
 
@@ -226,7 +226,8 @@ our %DEFAULTS = (
     PID_PATH => File::Spec->catfile(File::Spec->rootdir, 'var', 'run', 'helios'),
     MASTER_LAUNCH_INTERVAL => 1,
     ZERO_LAUNCH_INTERVAL => 10,
-    ZERO_SLEEP_INTERVAL => 30
+    ZERO_SLEEP_INTERVAL => 10,
+    REGISTRATION_INTERVAL => 60
 );
 our $CLEAN_SHUTDOWN = 1;				# used to determine if we should remove the PID file or not (at least for now)
 
@@ -237,7 +238,7 @@ our $MASTER_LAUNCH_INTERVAL;
 our $ZERO_LAUNCH_INTERVAL;
 
 our $START_TIME = time();				# used to measure uptime from the registry table
-our $REGISTRATION_INTERVAL = 300;		# used to periodically register daemon in database
+our $REGISTRATION_INTERVAL = 60;		# used to periodically register daemon in database
 our $REGISTRATION_LAST = 0;
 
 our $PID_FILE;							# globally accessible PID file location
@@ -317,6 +318,11 @@ if ( defined($params->{zero_sleep_interval}) ) {
 	$ZERO_SLEEP_INTERVAL = $params->{zero_sleep_interval};
 } else {
 	$ZERO_SLEEP_INTERVAL = $DEFAULTS{ZERO_SLEEP_INTERVAL};
+}
+if ( defined($params->{registration_interval}) ) {
+	$REGISTRATION_INTERVAL = $params->{registration_interval};
+} else {
+	$REGISTRATION_INTERVAL = $DEFAULTS{REGISTRATION_INTERVAL};
 }
 
 if ($DEBUG_MODE) { 

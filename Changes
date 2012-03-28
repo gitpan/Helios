@@ -1,5 +1,24 @@
 Revision history for Perl extension Helios.
 
+2.40_1271  Tue Mar 27 22:20:00 2012
+	-helios.pl: added registration_interval as a configuration 
+	 parameter (previously it was hard-coded to 300 seconds in 
+	 helios.pl).  The "registration_interval" parameter is the amount 
+	 of time (in secs) between service daemon "collective check-ins" 
+	 (when a service daemon records its current status in the 
+	 HELIOS_WORKER_REGISTRY_TB table.  This table is used to create 
+	 the Helios::Panoptes Collective Admin page, and is also useful 
+	 for system monitoring and statistics.
+	-helios.pl: set new defaults for zero_sleep_interval (10) and 
+	 registration_interval (60).  These new defaults should make 
+	 Helios more responsive in low load situations and generally work 
+	 better for more users out-of-the-box.  (The old defaults geared 
+	 Helios more for large volumes of long-running jobs on heavily
+	 loaded databases.  The new defaults should work for a better 
+	 range of small- to mid-sized loads.)  If these new defaults 
+	 create too much traffic for your database, you can set new 
+	 larger values in your helios.ini file to decrease database 
+	 traffic.
 2.40_1271  Sun Mar 25 21:20:00 2012
 	-helios.pl: changes to prevent a worker from transmuting to a new 
 	 service daemon (caused by database instability during transition 
