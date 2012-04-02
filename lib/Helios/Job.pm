@@ -13,7 +13,7 @@ require XML::Simple;
 use Helios::Error;
 use Helios::JobHistory;
 
-our $VERSION = '2.40';
+our $VERSION = '2.40_1361';
 
 our $D_OD_RETRIES = 3;
 our $D_OD_RETRY_INTERVAL = 5;
@@ -28,8 +28,34 @@ Helios::Job is the standard representation of jobs in the Helios framework.  It 
 related to the underlying TheSchwartz::Job objects, and provides its own methods for manipulating 
 jobs in the Helios system.
 
-
 =head1 ACCESSOR METHODS
+
+These accessors allow access to information about an instantiated Helios::Job 
+object:
+
+ debug()          whether Debug Mode is enabled or not
+ get/setConfig()  Helios configuration passed by the system to the job object
+ get/setArgs()    hashref of the job's arguments (interpreted from the arg XML)
+ get/setArgXML()  the raw XML of the job arguments
+
+Several accessors are pass-through accessors to access values in the 
+underlying TheSchwartz::Job object
+ 
+ get/setJobid()         jobid of the job in the job queue
+ get/setFailures()      number of previous failures of the job before current run
+ get/setFuncid()        funcid value of the job (maps to funcname in Helios db)
+ get/setFuncname()      funcname value of the job (maps to funcid in Helios db)
+ get/setUniqkey()       uniqkey value of the job (see TheSchwartz documentation)
+ get/setRunAfter()      current run_after value of the job
+ get/setGrabbedUntil()  current grabbed_until value of the job
+ get/setCoalesce()      coalesce value of the job (see TheSchwartz documentation)
+
+When running a job, your service class need not access any of these values 
+directly, though the information is available if you need it (for example, 
+to log how many failures your job has encountered before the current run).  
+When submitting a job, several of the set* accessors are needed to set up the
+job before submission; see the section on the submit() method for more 
+information.
 
 =cut
 
@@ -63,14 +89,24 @@ sub getGrabbedUntil { return $_[0]->job()->grabbed_until; }
 sub setCoalesce { return $_[0]->job()->coalesce($_[1]); }
 sub getCoalesce { return $_[0]->job()->coalesce; }
 
+# BEGIN CODE Copyright (C) 2012 by Andrew Johnson.
+sub setDriver { $_[0]->{driver} = $_[1]; }
+sub getDriver { 
+	if ( defined($_[0]->{driver}) ) {
+		return $_[0]->{driver};
+	} else {
+		return $_[0]->initDriver();
+	}
+}
+# END CODE Copyright (C) 2012 by Andrew Johnson.
+
+sub debug { my $self = shift; @_ ? $self->{debug} = shift : $self->{debug}; }
+
 # these are for direct access to the underlying TheSchwartz::Job object
 sub job { my $self = shift; @_ ? $self->{job} = shift : $self->{job}; }
 
-
 sub setArgXML { $_[0]->{argxml} = $_[1]; }
 sub getArgXML { return $_[0]->{argxml}; }
-
-sub debug { my $self = shift; @_ ? $self->{debug} = shift : $self->{debug}; }
 
 
 =head1 METHODS
@@ -348,6 +384,8 @@ sub failedNoRetry {
 }
 
 
+=head1 JOB SUBMISSION
+
 =head2 submit()
 
 Submits a job to the Helios collective for processing.  Returns the jobid if successful, throws an 
@@ -355,11 +393,71 @@ error if it fails.
 
 Before a job can be successfully submitted, the following must be set first:
 
- $job->setConfig()
- $job->setArgXML()
- $job->setFuncname()
+ $job->setConfig($configHash);
+ $job->setArgXML($xmlstring);
+ $job->setFuncname($servicename);
 
+So, for example, to submit a Helios::TestService to the Helios system, you need 
+to do the following:
 
+ # you need Helios::Service and Helios::Job
+ use Helios::Service;
+ use Helios::Job;
+
+ # these are the job arguments we want to pass to Helios::TestService
+ my $jobxml = "<job><params><string1>This is a test</string1/params>/job>";
+
+ # first, use Helios::Service to get the Helios configuration
+ my $srv = Helios::Service->new();
+ $srv->prep();
+ my $config = $srv->getConfig();
+ 
+ # once you have the config, you can set up the Helios::Job
+ my $job = Helios::Job->new();
+ $job->setConfig($config);
+ $job->setFuncname('Helios::TestService');
+ $job->setArgXML();
+ 
+ # then submit the job (this will throw an exception if something goes wrong)
+ my $jobid = $job->submit();
+ print "Submitted job $jobid to Helios\n";
+ 
+Both Helios::Service->prep() and Helios::Job->submit() will throw exceptions 
+if they encounter errors, so a safer example would catch them:
+
+ use Helios::Service;
+ use Helios::Job;
+
+ my $srv = Helios::Service->new();
+ eval {
+ 	$srv->prep();
+ 	1;
+ } or do {
+ 	my $E = $@;
+ 	print "Error encountered prepping Helios service: $E\n";
+ 	exit(1);
+ };
+ my $config = $srv->getConfig();
+ 
+ # once you have the config, you can set up the Helios::Job
+ my $job = Helios::Job->new();
+ $job->setConfig($config);
+ $job->setFuncname('Helios::TestService');
+ $job->setArgXML();
+ 
+ # then submit the job (this will throw an exception if something goes wrong)
+ my $jobid;
+ eval {
+	$jobid = $job->submit();
+ 	1;
+ } or do {
+	my $E = $@;
+	print "Error encountered attempting job submission: $E\n"; 	
+ };
+ print "Submitted job $jobid to Helios\n";
+
+Of course, the Try::Tiny (available on CPAN) would work just as well as an
+eval{} block, and have much prettier syntax.
 
 =cut
 
@@ -454,13 +552,15 @@ sub burst {
 
 =head1 OTHER METHODS
 
-=head2 getDriver()
+=head2 initDriver()
 
 Returns a Data::ObjectDriver object for use with Helios layer database updates.
 
 =cut
 
-sub getDriver {
+# BEGIN CODE Copyright (C) 2012 by Andrew Johnson.
+
+sub initDriver {
 	my $self = shift;
 	my $config = $self->getConfig();
 	if ($self->debug) { print $config->{dsn},$config->{user},$config->{password},"\n"; }
@@ -469,11 +569,11 @@ sub getDriver {
 	    username => $config->{user},
 	    password => $config->{password}
 	);	
-	if ($self->debug) { print "DRIVER: ",$driver,"\n"; }
+	if ($self->debug) { print 'Job->initDriver() DRIVER: ',$driver,"\n"; }
+	$self->setDriver($driver);
 	return $driver;	
 }
-
-
+# END CODE Copyright (C) 2012 by Andrew Johnson.
 
 
 1;
@@ -491,6 +591,9 @@ Andrew Johnson, E<lt>lajandy at cpan dotorgE<gt>
 =head1 COPYRIGHT AND LICENSE
 
 Copyright (C) 2008 by CEB Toolbox, Inc.
+
+Portions of this software, where noted, are
+Copyright (C) 2012 by Andrew Johnson.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.0 or,

@@ -17,7 +17,7 @@ use Helios;
 use Helios::Error;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.40_1321';
+our $VERSION = '2.40_1361';
 
 =head1 NAME
 
@@ -274,7 +274,11 @@ unless ( $worker_class->can('new') ) {
         eval "require $worker_class";
         die $@ if $@;
 }
-print $worker_class, ' ', $worker_class->VERSION," loaded.\n";
+if ( defined($worker_class->VERSION) ) {
+	print $worker_class, ' ', $worker_class->VERSION," loaded.\n";
+} else{
+	print $worker_class," loaded.\n";
+}
 if ($DEBUG_MODE) { print "Debug Mode enabled.\n"; }
 
 # instantiate a worker to access the necessary settings
@@ -288,8 +292,9 @@ if ( defined($HELIOS_INI) ) {
 $worker->setJobType($worker_class);
 $worker->debug($DEBUG_MODE);
 eval {
-        $worker->getConfigFromIni();
-        $worker->getConfigFromDb();
+#[]        $worker->getConfigFromIni();
+#[]        $worker->getConfigFromDb();
+	$worker->prep();
 };
 if ($@) {
         die("FAILED to get configuration: $@");

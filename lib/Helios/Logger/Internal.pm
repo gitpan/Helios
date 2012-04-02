@@ -5,22 +5,23 @@ use base qw(Helios::Logger);
 use strict;
 use warnings;
 
-use Error qw(:try);
-
 use Helios::LogEntry::Levels qw(:all);
+use Helios::Error::LoggingError;
 
-our $VERSION = '2.40';
+our $VERSION = '2.40_1361';
 
 =head1 NAME
 
-Helios::Logger::Internal - Helios::Logger subclass reimplementing Helios internal logging
+Helios::Logger::Internal - Helios::Logger subclass implementing Helios internal logging
 
 =head1 SYNOPSIS
 
  #in helios.ini, enable internal Helios logging (this is default)
  internal_logger=on
  
- #in helios.ini, turn off internal logging
+ #in helios.ini, turn off internal logging 
+ # make sure you've turned on another logger with the logger= directive
+ # otherwise you will have NO logging system active
  internal_logger=off
 
 
@@ -36,11 +37,15 @@ solutions by subclassing Helios::Logger.
 
 =head2 init()
 
-Helios::Logger::Internal->init() is empty, as an initialization step is unnecessary.
+Helios::Logger::Internal->init() attempts to initialize the connection to the 
+Helios collective database so it will be available for later calls to logMsg().
 
 =cut
 
-sub init { }
+sub init { 
+	my $self = shift;
+	$self->getDriver();
+}
 
 
 =head2 logMsg($job, $priority_level, $message)
@@ -56,8 +61,8 @@ sub logMsg {
 	my $level = shift;
 	my $msg = shift;
 
-	my $params = $self->getConfig();
-	my $jobType = $self->getJobType();
+	my $params   = $self->getConfig();
+	my $jobType  = $self->getJobType();
 	my $hostname = $self->getHostname();
 
     # if this log message's priority is lower than log_priority_threshold,
@@ -70,16 +75,16 @@ sub logMsg {
 	my $retries = 0;
 	my $retry_limit = 3;
 	RETRY: {
-		try{
+		eval {
 			my $driver = $self->getDriver();
 			my $log_entry;
 			if ( defined($job) ) {
 				$log_entry = Helios::LogEntry->new(
 					log_time   => time(),
-					host       => $self->getHostname,
+					host       => $self->getHostname(),
 					process_id => $$,
-					jobid      => $job->getJobid,
-					funcid     => $job->getFuncid,
+					jobid      => $job->getJobid(),
+					funcid     => $job->getFuncid(),
 					job_class  => $jobType,
 					priority   => $level,
 					message    => $msg
@@ -87,7 +92,7 @@ sub logMsg {
 			} else {
 				$log_entry = Helios::LogEntry->new(
 					log_time   => time(),
-					host       => $self->getHostname,
+					host       => $self->getHostname(),
 					process_id => $$,
 					jobid      => undef,
 					funcid     => undef,
@@ -97,11 +102,11 @@ sub logMsg {
 				);
 			}
 			$driver->insert($log_entry);		
-
-		} otherwise {
-			my $e = shift;
+			1;
+		} or do {
+			my $E = $@;
 			if ($retries > $retry_limit) {
-				throw Helios::Error::DatabaseError($e->text());
+				Helios::Error::LoggingError->throw("$E");
 			} else {
 				# we're going to give it another shot
 				$retries++;
@@ -112,25 +117,6 @@ sub logMsg {
 	}
 	# retry block end
 	return 1;
-}
-
-=head1 OTHER METHODS
-
-=head2 getDriver()
-
-Returns a Data::ObjectDriver object for use with the Helios database.
-
-=cut
-
-sub getDriver {
-    my $self = shift;
-    my $config = $self->getConfig();
-    my $driver = Data::ObjectDriver::Driver::DBI->new(
-        dsn      => $config->{dsn},
-        username => $config->{user},
-        password => $config->{password}
-    );  
-    return $driver; 
 }
 
 

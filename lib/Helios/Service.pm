@@ -1,17 +1,15 @@
 package Helios::Service;
 
 use 5.008;
-use base qw( TheSchwartz::Worker );
 use strict;
 use warnings;
+use base qw( TheSchwartz::Worker );
 use File::Spec;
 use Sys::Hostname;
 use Config::IniFiles;
 use DBI;
 use Data::ObjectDriver::Driver::DBI;
 use Error qw(:try);
-use TheSchwartz;
-use TheSchwartz::Job;
 require XML::Simple;
 
 use Helios::Error;
@@ -20,14 +18,7 @@ use Helios::ConfigParam;
 use Helios::LogEntry;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.40';
-
-our $CACHED_CONFIG;
-our $CACHED_CONFIG_RETRIEVAL_COUNT = 0;
-our $WORKER_START_TIME = 0;
-
-our %INIT_LOG_CLASSES;	# for the logging system
-
+our $VERSION = '2.40_1361';
 
 =head1 NAME
 
@@ -96,6 +87,14 @@ elsewhere in this document for specific terms.
 
 =cut
 
+our $CACHED_CONFIG;
+our $CACHED_CONFIG_RETRIEVAL_COUNT = 0;
+our $WORKER_START_TIME = 0;
+
+our %INIT_LOG_CLASSES;	# for the logging system
+
+our $DRIVER;	# for caching the Data::ObjectDriver
+
 sub max_retries { $_[0]->MaxRetries(); }
 sub retry_delay { $_[0]->RetryInterval(); }
 
@@ -107,15 +106,18 @@ sub work {
 	my $return_code;
 	my $args;
 
+	#[]remove
+	print "work() DRIVER: ",$DRIVER,"\n";
+	print "work() LOGGERS: ",%INIT_LOG_CLASSES,' ',scalar(keys %INIT_LOG_CLASSES),"\n";
+
 	# instantiate the service class into a worker
 	my $self = new $class;
-	try {
+	eval {
 	    # if we've previously retrieved a config
         # AND OVERDRIVE is enabled (1) 
         # AND LAZY_CONFIG_UPDATE is enabled (1),
         # AND we're not servicing the 10th job (or technically a multiple of ten)
-        # THEN just retrieve the pre-existing config
-        
+        # THEN just retrieve the pre-existing config        
         if ($self->debug) {
 	        print "CACHED_CONFIG=",$CACHED_CONFIG,"\n";
 	        print "CACHED_CONFIG_RETRIEVAL_COUNT=",$CACHED_CONFIG_RETRIEVAL_COUNT,"\n";
@@ -125,11 +127,15 @@ sub work {
                 $CACHED_CONFIG->{OVERDRIVE} == 1 &&
                 $CACHED_CONFIG_RETRIEVAL_COUNT % 10 != 0 
             ) {
-            $self->prep($CACHED_CONFIG);
+            $self->prep(CACHED_CONFIG => $CACHED_CONFIG);
             $CACHED_CONFIG_RETRIEVAL_COUNT++;
             if ($self->debug) { $self->logMsg(LOG_DEBUG,"Retrieved config params from in-memory cache"); }    #[] take this out before release
         } else {
-            $self->prep();
+			$self->prep();
+
+			# prep() just parsed the config for us
+			# let's grab the db driver and loggers for use by the next job
+			# (if we're in OVERDRIVE; if we're not, there won't be much effect
             if ( defined($self->getConfig()->{LAZY_CONFIG_UPDATE}) && 
                     $self->getConfig()->{LAZY_CONFIG_UPDATE} == 1 ) {
                 $CACHED_CONFIG = $self->getConfig();
@@ -137,29 +143,31 @@ sub work {
             }	    
         }
 	    	    
-		$job->setConfig($self->getConfig());
 		$job->debug( $self->debug );
+		$job->setConfig($self->getConfig());
+# BEGIN CODE Copyright (C) 2011-2012 by Andrew Johnson.
+		$job->setDriver($self->getDriver());
 		$args = $job->parseArgs();
-	} catch Helios::Error::InvalidArg with {
-		my $e = shift;
-		$self->logMsg($job, LOG_ERR, "Invalid arguments: ".$e->text);
-		$job->failedNoRetry($e->text);			
-		exit(1);
-	} catch Helios::Error::DatabaseError with {
-		my $e = shift;
-		$self->logMsg($job, LOG_ERR, "Database error: ".$e->text);
-		$job->failed($e->text);
-		exit(1);
-	} otherwise {
-		my $e = shift;
-		$self->logMsg($job, LOG_ERR, "Unexpected error: ".$e->text);
-		$job->failed($e->text);
-		exit(1);
+		1;
+	} or do {
+		my $E = $@;
+		if ( $E->isa('Helios::Error::InvalidArg') ) {
+			$self->logMsg($job, LOG_ERR, "Invalid arguments: $E");
+			$job->failedNoRetry("$E");			
+			exit(1);
+		} elsif ( $E->isa('Helios::Error::DatabaseError') ) {
+			$self->logMsg($job, LOG_ERR, "Database error: $E");
+			$job->failed("$E");
+			exit(1);
+		} else {
+			$self->logMsg($job, LOG_ERR, "Unexpected error: $E");
+			$job->failed("$E");
+			exit(1);
+		}
 	};
 
 	# run the job, whether it's a metajob or simple job
 	$self->setJob($job);
-# BEGIN CODE Copyright (C) 2011-2012 by Andrew Johnson.
 	eval {
 		if ( $job->isaMetaJob() ) {
 			# metajob
@@ -198,7 +206,7 @@ sub work {
 		) { 
 		exit(1); 
 	}
-# END CODE Copyright (C) 2011 by Andrew Johnson.
+# END CODE Copyright (C) 2011-2012 by Andrew Johnson.
 
 	# if we're not in OVERDRIVE, the worker process will exit as soon as work() returns anyway 
 	#    (calling shouldExitOverdrive will be a noop)
@@ -327,6 +335,21 @@ sub getIniFile { return $_[0]->{inifile}; }
 sub setHostname { $_[0]->{hostname} = $_[1]; }
 sub getHostname { return $_[0]->{hostname}; }
 
+# BEGIN CODE Copyright (C) 2012 by Andrew Johnson.
+# these are class methods!
+sub setDriver { 
+	$DRIVER = $_[1];
+}
+sub getDriver {
+	my $self = shift;
+	if ( defined($DRIVER) ) {
+		return $DRIVER;
+	} else {
+		return $self->initDriver();
+	}
+}
+# END CODE Copyright Andrew Johnson.
+
 sub errstr { my $self = shift; @_ ? $self->{errstr} = shift : $self->{errstr}; }
 sub debug { my $self = shift; @_ ? $self->{debug} = shift : $self->{debug}; }
 
@@ -394,34 +417,77 @@ an exception, that exception will be raised to your calling routine.
 
 =cut
 
+# BEGIN CODE Copyright (C) 2012 by Andrew Johnson.
+
 sub prep {
 	my $self = shift;
-	my $cached_config = shift;
+	my %params = @_;
+	my $cached_config;
+	my $driver;
+	my $loggers;
+	my $inifile;
 
-	# pull params from environment
-	$self->setHostname(hostname);
+	# if we were explicitly given setup information, use that 
+	# instead of setting up new ones
+	if ( defined($params{CACHED_CONFIG}) ) {
+		$cached_config = $params{CACHED_CONFIG};
+	}
+	if ( defined($params{DRIVER}) ) {
+		$driver = $params{DRIVER};
+	}
+	if ( defined($params{LOGGERS}) && keys(%{$params{LOGGERS}}) ) {
+		$loggers = $params{LOGGERS};
+	}
+	if ( defined($params{INIFILE}) ) {
+		$inifile = $params{INIFILE};
+	}
+
+	# pull other parameters from environment
+	# only bother to set hostname if it isn't already set	
+	unless ( defined($self->getHostname()) ) {
+		$self->setHostname(hostname);
+	}
+	
 	if ( defined($ENV{HELIOS_DEBUG}) ) {
 		$self->debug($ENV{HELIOS_DEBUG});
 	}
-	if ( defined($ENV{HELIOS_INI}) && 
-		!defined($self->getIniFile) ) {
-		$self->setIniFile($ENV{HELIOS_INI});
+	SWITCH: {
+		# explicitly giving an inifile to prep() overrides everything
+		if ( defined($inifile) ) { $self->setIniFile($inifile); last SWITCH; }
+		# if inifile is already set, we'll leave it alone
+		if ( defined($self->getIniFile()) ) { last SWITCH; }
+		# we'll pull in the HELIOS_INI environment variable
+		if ( defined($ENV{HELIOS_INI}) ) { $self->setIniFile($ENV{HELIOS_INI}); }
+	}
+	
+	if ( defined($cached_config) ) {
+		$self->setConfig($cached_config);
+		return 1;        
+    } else {
+		$self->getConfigFromIni();
+		$self->getConfigFromDb();
 	}
 
-    if ( defined($cached_config) ) {
-        $self->setConfig($cached_config);
-        return 1;        
-    }
+	#[]t
+	print "PREP() DRIVER: ",$DRIVER,"\n";
+	print "PREP() LOGGERS: ",%INIT_LOG_CLASSES,' ',scalar(keys %INIT_LOG_CLASSES),"\n";
 
-	# now get the Helios conf params from INI and db
-	# (these may throw their own errors that the calling routine
-	#  will have to catch)
-	$self->getConfigFromIni();
-	$self->getConfigFromDb();
+	# use the given D::OD driver if we were given one
+	# otherwise call getDriver() to make sure we have one
+	if ( defined($driver) ) {
+		$self->setDriver($driver);
+	} else {
+		$self->getDriver();
+	}
+	
+	# make sure loggers are init()ed
+	unless ( defined($loggers) ) {	
+		$self->initLoggers();
+	}
 
 	return 1;
 }
-
+# END Code Copyright Andrew Johnson.
 
 =head2 getConfigFromIni([$inifile])
 
@@ -605,13 +671,20 @@ sub jobsWaiting {
 		    $funcid = $self->getFuncid();
 		}
 
-		my $sql2 = <<JWSQL2;
+#		my $sql2 = <<JWSQL2;
+#SELECT COUNT(*)
+#FROM job
+#WHERE funcid = ?
+#	AND (run_after < ?)
+#	AND (grabbed_until < ?)
+#JWSQL2
+		my $sql2 = qq{
 SELECT COUNT(*)
 FROM job
 WHERE funcid = ?
 	AND (run_after < ?)
 	AND (grabbed_until < ?)
-JWSQL2
+		};
 		my $sth2 = $dbh->prepare($sql2);
 
 		my $current_time = time();
@@ -631,23 +704,33 @@ JWSQL2
 }
 
 
-=head2 getDriver()
+=head2 initDriver()
 
-Returns a Data::ObjectDriver object for use with the Helios database.
+Creates a Data::ObjectDriver object connected to the Helios database and 
+returns it to the calling routine.  Normally called by getDriver() if an 
+D::OD object has not already been initialized.
+
+The initDriver() method calls setDriver() to cache the D::OD 
+object for use by other methods.  This will greatly reduce the number of open 
+connections to the Helios database.
 
 =cut
 
-sub getDriver {
+# BEGIN CODE Copyright (C) 2012 by Andrew Johnson.
+sub initDriver {
 	my $self = shift;
 	my $config = $self->getConfig();
+	if ($self->debug) { print $config->{dsn},$config->{user},$config->{password},"\n"; }
 	my $driver = Data::ObjectDriver::Driver::DBI->new(
 	    dsn      => $config->{dsn},
 	    username => $config->{user},
 	    password => $config->{password}
 	);	
+	if ($self->debug) { print "initDriver() DRIVER: ",$driver,"\n"; }
+	$self->setDriver($driver);
 	return $driver;	
 }
-
+# END CODE Copyright (C) 2012 by Andrew Johnson.
 
 =head2 shouldExitOverdrive()
 
@@ -826,9 +909,14 @@ This configuration option is supported by the internal Helios logger
 (Helios::Logger::Internal).  Other Helios::Logger systems may or may not 
 support it; check the documentation of the logging module you plan to use.
 
+If anything goes wrong with calling the configured loggers' logMsg() methods,
+this method will attempt to catch the error and log it to the 
+Helios::Logger::Internal internal logger.  It will then rethrow the error 
+as a Helios::Error::LoggingError exception.
+
 =head3 COPYRIGHT AND LICENSE
 
-The logMsg() method is Copyright (C) 2009 by Andrew Johnson
+The logMsg() method is Copyright (C) 2009-12 by Andrew Johnson
 
 This method is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.0 or,
@@ -866,10 +954,60 @@ sub logMsg {
 		$level = LOG_INFO;	# default the level to LOG_INFO
 		$msg = $args[0];
 	}
-	
+
+	# the loggers should already know these, 
+	# but in case of emergency we'll need them	
 	my $config = $self->getConfig();
 	my $jobType = $self->getJobType();
 	my $hostname = $self->getHostname();
+	my $driver = $self->getDriver();
+
+	foreach my $logger (keys %INIT_LOG_CLASSES) {
+		eval {
+			$logger->logMsg($job, $level, $msg);
+			1;
+		} or do {
+            my $E = $@;
+            print "$E\n"; 
+            Helios::Logger::Internal->setConfig($config);
+            Helios::Logger::Internal->setJobType($jobType);
+            Helios::Logger::Internal->setHostname($hostname);
+			Helios::Logger::Internal->setDriver($driver);
+            Helios::Logger::Internal->init();
+            Helios::Logger::Internal->logMsg(undef, LOG_EMERG, $logger.' LOGGING FAILURE: '.$E);
+		};			
+	}
+	
+	return 1;	
+}
+
+
+=head2 initLoggers()
+
+The initLoggers() method is called to initialize all of the configured 
+Helios::Logger classes.  This method is normally called by the prep() method
+before a service's run() method is called.
+
+This method sets up the Helios::Logger subclass's configuration by calling 
+setConfig(), setHostname(), setJobType(), and setDriver().  It then calls the
+logger's init() method to finish the initialization phase of the logging class.
+
+This method will throw a Helios::Error::Logging error if anything goes wrong 
+with the initialization of a logger class.  It will also attempt to fall back 
+to the Helios::Logger::Internal logger to attempt to log the initialization 
+error.
+
+=cut
+
+# BEGIN CODE Copyright (C) 2012 by Andrew Johnson.
+sub initLoggers {
+	my $self = shift;
+	my $config = $self->getConfig();
+	my $jobType = $self->getJobType();
+	my $hostname = $self->getHostname();
+	my $driver = $self->getDriver();
+	my $debug = $self->debug();
+	my @loggers;
 
     # grab the names of all the configured loggers to try
     if ( defined($config->{loggers}) ) {
@@ -883,7 +1021,7 @@ sub logMsg {
     	unshift(@loggers, 'Helios::Logger::Internal');
     }
 
-	# if no loggers configured, this whole section will be skipped
+
 	foreach my $logger (@loggers) {
 		# init the logger if it hasn't been initialized yet
 		unless ( defined($INIT_LOG_CLASSES{$logger}) ) {
@@ -898,35 +1036,30 @@ sub logMsg {
 			$logger->setConfig($config);
 			$logger->setJobType($jobType);
 			$logger->setHostname($hostname);
-            try {
+			$logger->setDriver($driver);
+#			$logger->debug($debug);
+            eval {
     			$logger->init();
-            } otherwise {
+				1;
+            } or do {
             	# our only resort is to use the internal logger
-            	my $e = shift;
-            	print $e->text(),"\n"; #[]
+            	my $E = $@;
+            	print "$E\n";
                 Helios::Logger::Internal->setConfig($config);
                 Helios::Logger::Internal->setJobType($jobType);
                 Helios::Logger::Internal->setHostname($hostname);
+				Helios::Logger::Internal->setDriver($driver);
                 Helios::Logger::Internal->init();
-            	Helios::Logger::Internal->logMsg(undef, LOG_EMERG, $logger.' CONFIGURATION ERROR: '.$e->text());
+            	Helios::Logger::Internal->logMsg(undef, LOG_EMERG, $logger.' CONFIGURATION ERROR: '.$E);
+				# we need to go ahead and rethrow the error to stop the init process
+				Helios::Error::LoggingError->throw($E);
             };
 			$INIT_LOG_CLASSES{$logger} = $logger;
+			if ($self->debug) { print "Initialized Logger: $logger\n"; }
 		}
-		try {
-		  $logger->logMsg($job, $level, $msg);
-		} otherwise {
-            my $e = shift;
-            print $e->text(),"\n"; #[]
-            Helios::Logger::Internal->setConfig($config);
-            Helios::Logger::Internal->setJobType($jobType);
-            Helios::Logger::Internal->setHostname($hostname);
-            Helios::Logger::Internal->init();
-            Helios::Logger::Internal->logMsg(undef, LOG_EMERG, $logger.' LOGGING FAILURE: '.$e->text());
-		};			
 	}
-	
-	return 1;	
 }
+# END CODE Copyright (C) 2012 by Andrew Johnson.
 
 
 =head2 getJobArgs($job)
