@@ -13,7 +13,7 @@ require XML::Simple;
 use Helios::Error;
 use Helios::JobHistory;
 
-our $VERSION = '2.40_1361';
+our $VERSION = '2.40_1731';
 
 our $D_OD_RETRIES = 3;
 our $D_OD_RETRY_INTERVAL = 5;
@@ -381,6 +381,29 @@ sub failedNoRetry {
 
 	$job->permanent_failure(substr($error,0,254), $exitstatus);
 	return $exitstatus;
+}
+
+=head2 deferred()
+
+Defers processing of a job even though it was available for processing in the 
+queue.  The job will be seen as available for processing again when the 
+grabbed_until time has expired (the default is 60 minutes).  If your service 
+employs the job retry API, a declined job run does not count against the job's 
+retry count.
+
+Unlike the completed() and failed*() methods above, declined() is actually 
+only a wrapper around TheSchwartz 1.10's TheSchwartz::Job->declined() method 
+for now.  No job history is recorded in the HELIOS_JOB_HISTORY_TB in the 
+collective database.  This may change in the future.
+
+=cut
+
+sub declined {
+	my $self = shift;
+	my $job = $self->job();
+
+	$job->declined();
+	return 0;
 }
 
 

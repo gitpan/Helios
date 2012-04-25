@@ -2,7 +2,7 @@ package Helios;
 
 use 5.008000;
 
-our $VERSION = '2.40_1361';
+our $VERSION = '2.40_1731';
 
 
 =head1 NAME

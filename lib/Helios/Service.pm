@@ -18,7 +18,7 @@ use Helios::ConfigParam;
 use Helios::LogEntry;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.40_1361';
+our $VERSION = '2.40_1731';
 
 =head1 NAME
 
@@ -1126,6 +1126,19 @@ sub failedJobPermanent {
 	return $job->failedNoRetry($error, $exitstatus);
 }
 
+
+=head2 deferredJob($job)
+
+Defers processing of a job until its grabbed_until interval expires (default 
+is 60 minutes).  This feature requires TheSchwartz 1.10.
+
+=cut
+
+sub deferredJob {
+	my $self = shift;
+	my $job = shift;
+	return $job->deferred();
+}
 
 =head2 burstJob($metajob)
 

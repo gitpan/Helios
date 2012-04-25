@@ -1,6 +1,53 @@
 Revision history for Perl extension Helios.
-
-2.40_1271  Tue Mar 27 22:20:00 2012
+2.40_1731  Wed Apr 25 00:00:05 2012
+	-Corrected recent version history in the Changes file.  Sorry 
+	 for the mixups. 
+	-Helios::Service and Helios::Job: added deferredJob() and 
+	 deferred() methods to defer processing of a job even though it 
+	 was available in the job queue.  These methods (for now) simply 
+	 expose the declined() feature added in TheSchwartz 1.10; no Helios
+	 job history is recorded for a deferred job. 
+2.40_1361  Sun Apr 01 21:33:00 2012
+	-helios.pl: now calls the service class prep() method on startup 
+	 rather than getConfigFromIni() and getConfigFromDb() separately.
+	 This ensures proper setup of the loggers and Data::ObjectDriver 
+	 db connection (see below).
+	-helios.pl: changed startup message so perl doesn't carp a warning 
+	 if the service class doesn't have a $VERSION defined.
+	-Helios::Job, Helios::Logger, Helios::Service: changes to manage 
+	 the creation of Data::ObjectDriver connections to the 
+	 collective database.  In previous Helios versions, getDriver() 
+	 methods in Helios::Job and Helios::Service would always create 
+	 new D::OD objects.  This can potentially lead to many open 
+	 but inactive connections to the database as new objects are 
+	 needlessly created to utilize connections Helios already has 
+	 access to (this problem has been observed using Helios with 
+	 Oracle databases).  The getDriver() methods of Helios::Job and 
+	 Helios::Service now attempts to retrieve a cached copy of the 
+	 D::OD object and calls the new initDriver() method if a driver 
+	 doesn't already exist.  This way only one driver object will be 
+	 created to service all database activity between Helios::Service 
+	 and Helios::Job.  This same functionality was added to 
+	 Helios::Logger so all logger classes now have easy access to the 
+	 Helios collective database through the cached object.
+	-Helios::Service and Helios::Logger: changes were made to the 
+	 logger initialization process.  Logger classes are now 
+	 initialized when Helios::Service->prep() method is called, not 
+	 when the first call to logMsg() happens.  In addition, before 
+	 a logger's init() method is called, the setDriver() method is 
+	 called with an already initialized Data::ObjectDriver object so 
+	 the logger will not need to create its own.  This is more 
+	 efficient and prevents the problem mentioned above with D::OD 
+	 driver creation.  Loggers written for Helios 2.40 will continue 
+	 to work fine with 2.41, but loggers needing access to the 
+	 collective database can use the new set/get/initDriver() methods 
+	 to increase database efficiency.  See the Helios::Logger 
+	 documentation for more information on the new methods.  
+	-Helios::Logger::Internal: updated to conform to the changes above.
+	 The getDriver() method was removed (Helios::Logger->getDriver() 
+	 supercedes it) and the init() method now calls getDriver() to 
+	 make sure a D::OD has been created. 
+2.40_1321  Tue Mar 27 22:20:00 2012
 	-helios.pl: added registration_interval as a configuration 
 	 parameter (previously it was hard-coded to 300 seconds in 
 	 helios.pl).  The "registration_interval" parameter is the amount 
