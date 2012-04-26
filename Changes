@@ -1,4 +1,7 @@
 Revision history for Perl extension Helios.
+2.40_1732  Wed Apr 25 20:30:00 2012
+	-Corrected Helios::Job->deferred().  It works and agrees with 
+	 the documentation now.
 2.40_1731  Wed Apr 25 00:00:05 2012
 	-Corrected recent version history in the Changes file.  Sorry 
 	 for the mixups. 
