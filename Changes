@@ -1,4 +1,17 @@
 Revision history for Perl extension Helios.
+2.40_1931  Wed May 09 23:30:00 2012
+	-Removed Bundle::Helios::RedHat.  Ultimately, it didn't work any 
+	 better (or worse) than using 'install Helios' command with the 
+	 CPAN shell.  Bundle::Helios::Generic seems to work well, however.
+	-First official schema added.  This schema is based on a schema 
+	 created by the Oracle MySQL to Oracle schema conversion tool.  It 
+	 will probably need some tweaking to fit in with your 
+	 organization's Oracle setup (grants, tablespaces, etc).
+	-Changed getDriver() in Helios::Service and Helios::Logger to 
+	 disable caching of the Data::ObjectDriver object.  There were 
+	 issues if the database connection experienced problems.  This 
+	 feature will probably reappear in a future release (after more 
+	 testing).
 2.40_1732  Wed Apr 25 20:30:00 2012
 	-Corrected Helios::Job->deferred().  It works and agrees with 
 	 the documentation now.

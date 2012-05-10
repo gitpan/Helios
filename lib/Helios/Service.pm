@@ -18,7 +18,7 @@ use Helios::ConfigParam;
 use Helios::LogEntry;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.40_1731';
+our $VERSION = '2.40_1931';
 
 =head1 NAME
 
@@ -341,12 +341,7 @@ sub setDriver {
 	$DRIVER = $_[1];
 }
 sub getDriver {
-	my $self = shift;
-	if ( defined($DRIVER) ) {
-		return $DRIVER;
-	} else {
-		return $self->initDriver();
-	}
+	initDriver(@_);
 }
 # END CODE Copyright Andrew Johnson.
 

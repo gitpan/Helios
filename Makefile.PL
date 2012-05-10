@@ -14,7 +14,6 @@ WriteMakefile(
                              DBI                    => 1.52,
                              TheSchwartz            => 1.04,
                              Config::IniFiles       => 2.38,
-                             DBD::mysql             => 3.0,
                              Error                  => 0.17,
                              XML::Simple            => 2.14,
                              Pod::Usage             => 0.01

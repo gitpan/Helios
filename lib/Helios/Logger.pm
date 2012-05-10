@@ -7,7 +7,7 @@ use warnings;
 use Helios::Job;
 use Helios::Error::LoggingError;
 
-our $VERSION = '2.40_1361';
+our $VERSION = '2.40_1931';
 
 =head1 NAME
 
@@ -115,14 +115,7 @@ sub setDriver {
 	$$var = $_[1];
 }
 sub getDriver {
-	my $var = $_[0]."::Driver";
-	no strict 'refs';
-	if ( defined($$var) ) {
-		return $$var;
-	} else {
-		$$var = $_[0]->initDriver();
-		return $$var;
-	}
+	return initDriver(@_);
 }
 sub initDriver {
 	my $self = shift;

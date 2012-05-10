@@ -16,6 +16,8 @@ Bundle::Helios::Generic - install all Helios related modules
 
 =head1 CONTENTS
 
+DBI
+
 Data::ObjectDriver    0.04
 
 TheSchwartz           1.04
