@@ -1,9 +1,13 @@
 Revision history for Perl extension Helios.
+2.40_2071  Sun May 20 13:45:00 2012
+	Helios 2.41 RC1
+	-Removed debug messages
+	-Minor update to tests
 2.40_1931  Wed May 09 23:30:00 2012
 	-Removed Bundle::Helios::RedHat.  Ultimately, it didn't work any 
 	 better (or worse) than using 'install Helios' command with the 
 	 CPAN shell.  Bundle::Helios::Generic seems to work well, however.
-	-First official schema added.  This schema is based on a schema 
+	-First official Oracle schema added.  This schema is based on a schema 
 	 created by the Oracle MySQL to Oracle schema conversion tool.  It 
 	 will probably need some tweaking to fit in with your 
 	 organization's Oracle setup (grants, tablespaces, etc).

@@ -17,7 +17,7 @@ use Helios;
 use Helios::Error;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.40_1361';
+our $VERSION = '2.40_2071';
 
 =head1 NAME
 
@@ -292,8 +292,6 @@ if ( defined($HELIOS_INI) ) {
 $worker->setJobType($worker_class);
 $worker->debug($DEBUG_MODE);
 eval {
-#[]        $worker->getConfigFromIni();
-#[]        $worker->getConfigFromDb();
 	$worker->prep();
 };
 if ($@) {
@@ -463,7 +461,7 @@ MAIN_LOOP:{
 					}
 					if ($DEBUG_MODE) { print "$0 $worker_class HOLDING\n"; }
 					sleep 60; 
-					# after the first cycle through HOLD, the workers had BETTER be dead  #[]?
+					# after the first cycle through HOLD, the workers had BETTER be dead 
 					if ( defined($params->{WORKER_MAX_TTL}) && $params->{WORKER_MAX_TTL} > 0 
 					       && scalar(keys %workers) ) {
 					    double_clutch();
@@ -487,7 +485,7 @@ MAIN_LOOP:{
 					$worker->logMsg(LOG_DEBUG, $waiting_jobs . " waiting " . $worker_class . " jobs.");
 				}
 				unless ( $waiting_jobs ) {
-						$times_sleeping++;	  #[]
+						$times_sleeping++;	  
 						# only log the "0 workers running, 0 workers in queue.  SLEEPING" message every $ZERO_SLEEP_LOG_INTERVAL seconds
 						# (necessary to prevent overwhelming database logging with messages we don't care about)
 						if ( ($running_workers == 0) && (($ZERO_SLEEP_LOG_LAST + $ZERO_SLEEP_LOG_INTERVAL ) < time()) ) {
@@ -613,7 +611,6 @@ if ($CLEAN_SHUTDOWN) {
 	# if we're cleanly shutting down (we were told to via helios_params_tb)
 	# unregister from Helios database
 	# remove our PID
-#[]	clean_shutdown();
     terminator();
 } else {
 	# if we've had a db error, this will throw an exception when it tries to log to the database
@@ -621,7 +618,6 @@ if ($CLEAN_SHUTDOWN) {
 	$worker->logMsg(LOG_ERR,"$0 $worker_class HALTED on error: ".$worker->errstr);
 }
 
-#[] $worker->logMsg(LOG_NOTICE, "$0 $worker_class HALTED");
 if ($DEBUG_MODE) { print "$0 $worker_class HALTED!\n"; }
 
 exit();

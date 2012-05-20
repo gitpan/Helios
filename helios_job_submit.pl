@@ -5,8 +5,6 @@ use warnings;
 
 use Error qw(:try);
 
-#use Data::Dumper;	#[]t
-
 use Helios::Job;
 use Helios::Service;
 

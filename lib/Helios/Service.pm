@@ -18,7 +18,7 @@ use Helios::ConfigParam;
 use Helios::LogEntry;
 use Helios::LogEntry::Levels qw(:all);
 
-our $VERSION = '2.40_1931';
+our $VERSION = '2.40_2071';
 
 =head1 NAME
 
@@ -106,10 +106,6 @@ sub work {
 	my $return_code;
 	my $args;
 
-	#[]remove
-	print "work() DRIVER: ",$DRIVER,"\n";
-	print "work() LOGGERS: ",%INIT_LOG_CLASSES,' ',scalar(keys %INIT_LOG_CLASSES),"\n";
-
 	# instantiate the service class into a worker
 	my $self = new $class;
 	eval {
@@ -129,7 +125,7 @@ sub work {
             ) {
             $self->prep(CACHED_CONFIG => $CACHED_CONFIG);
             $CACHED_CONFIG_RETRIEVAL_COUNT++;
-            if ($self->debug) { $self->logMsg(LOG_DEBUG,"Retrieved config params from in-memory cache"); }    #[] take this out before release
+            if ($self->debug) { $self->logMsg(LOG_DEBUG,"Retrieved config params from in-memory cache"); } 
         } else {
 			$self->prep();
 
@@ -463,10 +459,6 @@ sub prep {
 		$self->getConfigFromDb();
 	}
 
-	#[]t
-	print "PREP() DRIVER: ",$DRIVER,"\n";
-	print "PREP() LOGGERS: ",%INIT_LOG_CLASSES,' ',scalar(keys %INIT_LOG_CLASSES),"\n";
-
 	# use the given D::OD driver if we were given one
 	# otherwise call getDriver() to make sure we have one
 	if ( defined($driver) ) {
@@ -795,7 +787,6 @@ sub dbConnect {
 			if ($self->debug) { print "dsn=$dsn\nuser=$user\npass=$password\n";	} 
 			$dbh = DBI->connect_cached($dsn, $user, $password);
 		}
-#[]		if ( $DBI::errstr ) { 
         unless ( defined($dbh) ) {
 			$self->errstr("DB ERROR: ".$DBI::errstr); 
 			throw Helios::Error::DatabaseError($DBI::errstr);
