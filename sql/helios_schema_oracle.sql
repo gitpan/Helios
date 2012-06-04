@@ -193,97 +193,97 @@
   GRANT DELETE, INSERT, SELECT, UPDATE, REFERENCES ON "HELIOS_PARAMS_TB" TO PUBLIC;
 
 --------------------------------------------------------
---  DDL for Index ERROR_TIME
+--  DDL for Index ERROR_TIME_IDX
 --------------------------------------------------------
 
   CREATE INDEX "ERROR_TIME_IDX" ON "ERROR" ("ERROR_TIME") 
   ;
 --------------------------------------------------------
---  DDL for Index FUNCID_1
+--  DDL for Index EXITSTATUS_FUNCID_IDX
 --------------------------------------------------------
 
   CREATE INDEX "EXITSTATUS_FUNCID_IDX" ON "EXITSTATUS" ("FUNCID") 
   ;
 --------------------------------------------------------
---  DDL for Index FUNCID_2_5
+--  DDL for Index JOB_FUNCID_RA_IDX
 --------------------------------------------------------
 
   CREATE INDEX "JOB_FUNCID_RA_IDX" ON "JOB" ("FUNCID", "RUN_AFTER") 
   ;
 --------------------------------------------------------
---  DDL for Index FUNCID_3
+--  DDL for Index JOB_FUNCID_C_IDX
 --------------------------------------------------------
 
   CREATE INDEX "JOB_FUNCID_C_IDX" ON "JOB" ("FUNCID", "COALESCE") 
   ;
 --------------------------------------------------------
---  DDL for Index PRIMARY_4
+--  DDL for Index NOTE_JOBID_NK_IDX
 --------------------------------------------------------
 
   CREATE UNIQUE INDEX "NOTE_JOBID_NK_IDX" ON "NOTE" ("JOBID", "NOTEKEY") 
   ;
 --------------------------------------------------------
---  DDL for Index FUNCID
+--  DDL for Index ERROR_FUNCID_ET_IDX
 --------------------------------------------------------
 
   CREATE INDEX "ERROR_FUNCID_ET_IDX" ON "ERROR" ("FUNCID", "ERROR_TIME") 
   ;
 --------------------------------------------------------
---  DDL for Index PRIMARY_3
+--  DDL for Index FUNCMAP_FUNCID_IDX
 --------------------------------------------------------
 
   CREATE UNIQUE INDEX "FUNCMAP_FUNCID_IDX" ON "FUNCMAP" ("FUNCID") 
   ;
 --------------------------------------------------------
---  DDL for Index FUNCID_2
+--  DDL for Index JOB_FUNCID_UK_IDX
 --------------------------------------------------------
 
   CREATE INDEX "JOB_FUNCID_UK_IDX" ON "JOB" ("FUNCID", "UNIQKEY") 
   ;
 --------------------------------------------------------
---  DDL for Index JOBID
+--  DDL for Index HJHT_JOBID_IDX
 --------------------------------------------------------
 
   CREATE INDEX "HJHT_JOBID_IDX" ON "HELIOS_JOB_HISTORY_TB" ("JOBID") 
   ;
 --------------------------------------------------------
---  DDL for Index LOG_TIME
+--  DDL for Index HLT_LOG_TIME_IDX
 --------------------------------------------------------
 
   CREATE INDEX "HLT_LOG_TIME_IDX" ON "HELIOS_LOG_TB" ("LOG_TIME") 
   ;
 --------------------------------------------------------
---  DDL for Index COMPLETE_TIME
+--  DDL for Index HJHT_COMPLETE_TIME_IDX
 --------------------------------------------------------
 
   CREATE INDEX "HJHT_COMPLETE_TIME_IDX" ON "HELIOS_JOB_HISTORY_TB" ("COMPLETE_TIME") 
   ;
 --------------------------------------------------------
---  DDL for Index DELETE_AFTER
+--  DDL for Index EXITSTATUS_DA_IDX
 --------------------------------------------------------
 
   CREATE INDEX "EXITSTATUS_DA_IDX" ON "EXITSTATUS" ("DELETE_AFTER") 
   ;
 --------------------------------------------------------
---  DDL for Index PRIMARY
+--  DDL for Index EXITSTATUS_JOBID_IDX
 --------------------------------------------------------
 
   CREATE UNIQUE INDEX "EXITSTATUS_JOBID_IDX" ON "EXITSTATUS" ("JOBID") 
   ;
 --------------------------------------------------------
---  DDL for Index FUNCNAME
+--  DDL for Index FUNCMAP_FUNCNAME_IDX
 --------------------------------------------------------
 
   CREATE UNIQUE INDEX "FUNCMAP_FUNCNAME_IDX" ON "FUNCMAP" ("FUNCNAME") 
   ;
 --------------------------------------------------------
---  DDL for Index PRIMARY_2
+--  DDL for Index JOB_JOBID_IDX
 --------------------------------------------------------
 
   CREATE UNIQUE INDEX "JOB_JOBID_IDX" ON "JOB" ("JOBID") 
   ;
 --------------------------------------------------------
---  DDL for Index JOBID_1
+--  DDL for Index ERROR_JOBID_IDX
 --------------------------------------------------------
 
   CREATE INDEX "ERROR_JOBID_IDX" ON "ERROR" ("JOBID") 

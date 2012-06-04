@@ -12,7 +12,7 @@ use Helios::Job;
 use Helios::Service;
 use Helios::LogEntry::Levels ':all';
 
-our $VERSION = '2.40';
+our $VERSION = '2.41';
 
 # grab the CGI params (we may not have any)
 my $cgi = CGI->new();
@@ -202,10 +202,10 @@ script as an example:
  ENDXML
 
  my $r = $ua->request(POST 'http://localhost/cgi-bin/submitJob.pl',
-		Content_Type => 'text/xml',
-		Content => $message
+ 		Content_Type => 'text/xml',
+ 		Content => $jobXML
  );
- print $response->as_string;
+ print $r->as_string;
 
 =head1 RESPONSE
 

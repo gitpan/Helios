@@ -1,79 +1,39 @@
 Revision history for Perl extension Helios.
-2.40_2071  Sun May 20 13:45:00 2012
-	Helios 2.41 RC1
-	-Removed debug messages
-	-Minor update to tests
-2.40_1931  Wed May 09 23:30:00 2012
-	-Removed Bundle::Helios::RedHat.  Ultimately, it didn't work any 
-	 better (or worse) than using 'install Helios' command with the 
-	 CPAN shell.  Bundle::Helios::Generic seems to work well, however.
-	-First official Oracle schema added.  This schema is based on a schema 
-	 created by the Oracle MySQL to Oracle schema conversion tool.  It 
-	 will probably need some tweaking to fit in with your 
-	 organization's Oracle setup (grants, tablespaces, etc).
-	-Changed getDriver() in Helios::Service and Helios::Logger to 
-	 disable caching of the Data::ObjectDriver object.  There were 
-	 issues if the database connection experienced problems.  This 
-	 feature will probably reappear in a future release (after more 
-	 testing).
-2.40_1732  Wed Apr 25 20:30:00 2012
-	-Corrected Helios::Job->deferred().  It works and agrees with 
-	 the documentation now.
-2.40_1731  Wed Apr 25 00:00:05 2012
-	-Corrected recent version history in the Changes file.  Sorry 
-	 for the mixups. 
+2.41  Sun Jun 03 22:00:00 2012
+	-Official Oracle support!  DDL for a Helios Oracle schema is in 
+	 'sql/helios_schema_oracle.sql'.  Please note: 
+	 1) you will need to adjust the Oracle schema to fit your 
+	    environment (especially in regards to security and tablespaces)
+	 2) while the Helios core supports Oracle, the Helios::Panoptes 
+	    web admin interface still only supports MySQL (Panoptes 
+	    support for Oracle is being worked on) 
 	-Helios::Service and Helios::Job: added deferredJob() and 
 	 deferred() methods to defer processing of a job even though it 
 	 was available in the job queue.  These methods (for now) simply 
 	 expose the declined() feature added in TheSchwartz 1.10; no Helios
-	 job history is recorded for a deferred job. 
-2.40_1361  Sun Apr 01 21:33:00 2012
-	-helios.pl: now calls the service class prep() method on startup 
+	 job history is recorded for a deferred job.  Existing Helios 
+	 users will need to upgrade their TheSchwartz library to 1.10 to 
+	 use this feature.
+	-Helios::Logger & Helios::Logger::Internal:  moved driver 
+	 creation to base Helios::Logger class so (if necessary) any 
+	 loggers can get a Data::ObjectDriver to the collective database
+	-Helios::Service & Helios::Logger:  refactored getDriver() into 
+	 initDriver() and getDriver() to eventually allow caching of 
+	 Data::ObjectDriver objects.  Anything needing an ObjectDriver to 
+	 the collective database should just continue to call getDriver() 
+	 and everything will work fine.
+	-helios.pl: calls the service class prep() method on startup 
 	 rather than getConfigFromIni() and getConfigFromDb() separately.
 	 This ensures proper setup of the loggers and Data::ObjectDriver 
-	 db connection (see below).
+	 db connection.
 	-helios.pl: changed startup message so perl doesn't carp a warning 
 	 if the service class doesn't have a $VERSION defined.
-	-Helios::Job, Helios::Logger, Helios::Service: changes to manage 
-	 the creation of Data::ObjectDriver connections to the 
-	 collective database.  In previous Helios versions, getDriver() 
-	 methods in Helios::Job and Helios::Service would always create 
-	 new D::OD objects.  This can potentially lead to many open 
-	 but inactive connections to the database as new objects are 
-	 needlessly created to utilize connections Helios already has 
-	 access to (this problem has been observed using Helios with 
-	 Oracle databases).  The getDriver() methods of Helios::Job and 
-	 Helios::Service now attempts to retrieve a cached copy of the 
-	 D::OD object and calls the new initDriver() method if a driver 
-	 doesn't already exist.  This way only one driver object will be 
-	 created to service all database activity between Helios::Service 
-	 and Helios::Job.  This same functionality was added to 
-	 Helios::Logger so all logger classes now have easy access to the 
-	 Helios collective database through the cached object.
-	-Helios::Service and Helios::Logger: changes were made to the 
-	 logger initialization process.  Logger classes are now 
-	 initialized when Helios::Service->prep() method is called, not 
-	 when the first call to logMsg() happens.  In addition, before 
-	 a logger's init() method is called, the setDriver() method is 
-	 called with an already initialized Data::ObjectDriver object so 
-	 the logger will not need to create its own.  This is more 
-	 efficient and prevents the problem mentioned above with D::OD 
-	 driver creation.  Loggers written for Helios 2.40 will continue 
-	 to work fine with 2.41, but loggers needing access to the 
-	 collective database can use the new set/get/initDriver() methods 
-	 to increase database efficiency.  See the Helios::Logger 
-	 documentation for more information on the new methods.  
-	-Helios::Logger::Internal: updated to conform to the changes above.
-	 The getDriver() method was removed (Helios::Logger->getDriver() 
-	 supercedes it) and the init() method now calls getDriver() to 
-	 make sure a D::OD has been created. 
-2.40_1321  Tue Mar 27 22:20:00 2012
 	-helios.pl: added registration_interval as a configuration 
 	 parameter (previously it was hard-coded to 300 seconds in 
 	 helios.pl).  The "registration_interval" parameter is the amount 
 	 of time (in secs) between service daemon "collective check-ins" 
 	 (when a service daemon records its current status in the 
-	 HELIOS_WORKER_REGISTRY_TB table.  This table is used to create 
+	 HELIOS_WORKER_REGISTRY_TB table).  This table is used to create 
 	 the Helios::Panoptes Collective Admin page, and is also useful 
 	 for system monitoring and statistics.
 	-helios.pl: set new defaults for zero_sleep_interval (10) and 
@@ -86,10 +46,17 @@ Revision history for Perl extension Helios.
 	 create too much traffic for your database, you can set new 
 	 larger values in your helios.ini file to decrease database 
 	 traffic.
-2.40_1271  Sun Mar 25 21:20:00 2012
 	-helios.pl: changes to prevent a worker from transmuting to a new 
 	 service daemon (caused by database instability during transition 
 	 between helios.pl, TheSchwartz->work(), and Helios::Service->work() 
+	-updated tests
+	-submitJob.pl:  fixed example in POD
+	-Removed Bundle::Helios::RedHat.  Ultimately, it didn't work any 
+	 better (or worse) than using 'install Helios' command with the 
+	 CPAN shell.  Bundle::Helios::Generic seems to work well on other 
+	 platforms, however.  If you wish to use Helios with RHEL/CentOS 
+	 5.x or earlier, it is recommended you install a more recent 
+	 version of Perl than 5.8.8 for ease of installation reasons.  
 2.40  Sun Jan 22 22:30:00 2012
 	-NEW Extensible logging subsystem (Helios::Logger) 
 	-NEW Helios::Error::BaseError exception class; acts as parent for
