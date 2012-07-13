@@ -1,6 +1,6 @@
 package Bundle::Helios::Generic;
 
-$VERSION = "2.40";
+$VERSION = "2.50_2830";
 
 1;
 
