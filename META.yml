@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Helios
-version:            2.601_3670
+version:            2.601_3750
 abstract:           A system for distributed job processing applications.
 author:
     - Andrew Johnson <lajandy at cpan dotorg>
@@ -22,10 +22,7 @@ requires:
 resources:
     bugtracker:  https://rt.cpan.org/Public/Dist/Display.html?Name=Helios
     homepage:    http://helios.logicalhelion.org
-    repository:
-        type:  git
-        url:   https://github.com/logicalhelion/helios.git
-        web:   https://github.com/logicalhelion/helios
+    repository:  git://github.com/logicalhelion/helios.git
 no_index:
     directory:
         - t
