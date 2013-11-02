@@ -8,15 +8,17 @@ use Sys::Hostname;
 
 use Helios::Service;
 
-our $VERSION = '2.71_4350';
+our $VERSION = '2.71_4460';
 
 our $Service_Name = '';
 our $Hostname     = '';
 our $Help_Mode    = 0;
+our $OPT_Epoch_Time = 0;
 
 GetOptions(
 	"service=s"  => \$Service_Name,
-	"hostname=s" => \$Hostname, 
+	"hostname=s" => \$Hostname,
+	"epoch-time" => \$OPT_Epoch_Time, 
 	"help"       => \$Help_Mode,
 );
 
@@ -71,8 +73,13 @@ eval {
 };
 
 foreach (@$rs) {
-	print 'Service: ',$_->[0],' ',$_->[1],'  Host: ',$_->[2],'  PID: ',$_->[3],"\n";
-	print "  Online Since: ",scalar localtime($_->[4]),'  Last Registered: ',scalar localtime($_->[5]),"\n";
+	print 'Service: ',$_->[0],"\n";
+	print 'Version: ',$_->[1],"\n";
+	print 'Host: ',$_->[2],"\n";
+	print 'PID: ',$_->[3],"\n";
+	print "Online Since: ", $OPT_Epoch_Time ? $_->[4] : scalar localtime($_->[4]),"\n";
+	print 'Last Registered: ', $OPT_Epoch_Time ? $_->[5] : scalar localtime($_->[5]),"\n";
+	print "\n";
 }
 
 $dbh->disconnect();
