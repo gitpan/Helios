@@ -22,6 +22,7 @@ helios_job_info
 helios_job_status
 helios_job_submit.pl
 helios_jobtype_add
+helios_jobtype_info
 helios_log_clean.pl
 helios_service_status
 INSTALL
@@ -68,3 +69,4 @@ sql/helios_schema_mysql.sql
 sql/helios_schema_oracle.sql
 t/1.t
 t/2.t
+META.json                                Module JSON meta-data (added by MakeMaker)
