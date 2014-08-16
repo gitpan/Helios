@@ -43,7 +43,7 @@
          }
       }
    },
-   "release_status" : "testing",
+   "release_status" : "stable",
    "resources" : {
       "bugtracker" : {
          "web" : "https://rt.cpan.org/Public/Dist/Display.html?Name=Helios"
@@ -53,5 +53,5 @@
          "url" : "git://github.com/logicalhelion/helios.git"
       }
    },
-   "version" : "2.801_3350"
+   "version" : "2.81"
 }
