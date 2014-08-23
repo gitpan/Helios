@@ -7,7 +7,7 @@ use warnings;
 use Helios::Job;
 use Helios::Config;
 
-our $VERSION = '2.80';
+our $VERSION = '2.811_3460';
 
 # CHANGES:
 # 2012-01-22: Minor changes to comments.
@@ -28,7 +28,7 @@ helios_job_submit.pl - Submit a job to the Helios job processing system from the
 
  helios_job_submit.pl [--verbose] [--no-validate] I<jobclass> [I<jobargs>]
 
- helios_job_submit.pl MyService "<job>params><myarg1>myvalue1</myarg1></params></job>"
+ helios_job_submit.pl MyService "<job><params><myarg1>myvalue1</myarg1></params></job>"
 
  helios_job_submit.pl --help
 
