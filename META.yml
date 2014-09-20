@@ -30,4 +30,4 @@ resources:
   bugtracker: https://rt.cpan.org/Public/Dist/Display.html?Name=Helios
   homepage: http://helios.logicalhelion.org
   repository: git://github.com/logicalhelion/helios.git
-version: 2.811_3460
+version: 2.811_3850
