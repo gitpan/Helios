@@ -1,4 +1,4 @@
-package StubService;
+package Helios::App::Stub;
 
 use 5.008;
 use strict;
@@ -7,16 +7,18 @@ use base 'Helios::Service';
 use Helios::LogEntry::Levels ':all';
 use Helios::Error;			# pulls in all Helios::Error::* exception types
 
-our $VERSION = '0.03';		# for packaging purposes
+our $VERSION = '0.04';		# for packaging purposes
 
 
 # FILE CHANGE HISTORY:
 # 2012-01-08:  Updated code for clarity.
 # 2012-01-09:  Refactored from Stub::StubService to just StubService.
+# [2014-10-10] [LH]:  Renamed to Helios::App::Stub to prevent PAUSE indexer
+# from letting an example app grab a CPAN top-level namespace.
 
 =head1 NAME
 
-Stub::StubService - Helios::Service subclass to handle [job type here] jobs
+Helios::App::Stub - Helios::Service subclass to handle [job type here] jobs
 
 =head1 DESCRIPTION
 
@@ -80,7 +82,7 @@ sub run {
 		my $E = $@;
 		# you can check the type of exception that was thrown
 		# or if you don't care what type of error was thrown, 
-		# you can just use failedJob() to mark it as failed
+		# you can just use failedJob() to mark it as failed.
 		if ( $E->isa('Helios::Error::Warning') ) {
 			# this is just a warning, so we log it and mark the job completed
 			$self->logMsg($job, LOG_WARNING, "Warning: ".$E);
@@ -98,9 +100,3 @@ sub run {
 1;
 __END__
 
-
-=head1 SEE ALSO
-
-L<Helios::Service>, L<helios.pl>
-
-=cut
